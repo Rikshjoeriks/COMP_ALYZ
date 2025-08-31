@@ -31,13 +31,25 @@ Out of scope (L07+):
   - cross-chunk merges; evidence substring verification; Y/N expansion; numbering; CSV exports.
 """
 
-import argparse
+import argparse, sys, traceback
 import json
 import os
 import re
-import sys
-import traceback
+from pathlib import Path
 from typing import Dict, List, Any, Tuple, Set
+import shutil
+
+from pvvp.temp_utils import make_temp_root, atomic_publish
+
+tmp: Path | None = None
+
+
+def write_err(tmp: Path, name: str, tb: str):
+    try:
+        (tmp / "logs").mkdir(parents=True, exist_ok=True)
+        (tmp / "logs" / f"{name}.err.log").write_text(tb, encoding="utf-8")
+    except Exception:
+        pass
 
 # Use requests to minimize dependency/version drift.
 try:
@@ -335,76 +347,93 @@ def normalize_output_against_allowlist(
 
     return {"mentioned_vars": filtered_mv, "evidence": filtered_ev}
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="L06.Mapper.StrictGPT")
-    parser.add_argument("--session", required=True, help="Car/session id, e.g., MCAFHEV")
-    parser.add_argument("--project-root", required=True, help="Project root folder")
-    args = parser.parse_args()
+def build_parser():
+    p = argparse.ArgumentParser(description="L06 Mapper", allow_abbrev=False)
+    p.add_argument("--project-root", default=None)
+    p.add_argument("--session", "--session-id", dest="session", default=None)
+    p.add_argument("--workdir", default=None)
+    p.add_argument("--keep-workdir", action="store_true")
+    p.add_argument("--readonly", action="store_true")
+    p.add_argument("--diag", action="store_true")
+    return p
 
-    project_root = os.path.abspath(args.project_root)
-    session_id = args.session
-    session_dir = os.path.join(project_root, "sessions", session_id)
 
-    debug_path = os.path.join(session_dir, "mapper_debug.txt")
-    last_response_path = os.path.join(session_dir, "mapper_response.json")
-    mapper_all_path = os.path.join(session_dir, "mapper_all.json")
+def run(
+    session: str,
+    project_root: Path,
+    workdir: Path | None,
+    keep_workdir: bool,
+    readonly: bool,
+    diag: bool = False,
+) -> int:
+    session_dir = project_root / "sessions" / session
+    debug_dest = session_dir / "mapper_debug.txt"
+    response_dest = session_dir / "mapper_response.json"
+    mapper_all_dest = session_dir / "mapper_all.json"
 
+    temp_root = workdir.resolve() if workdir else make_temp_root()
+    if diag:
+        print(f"cwd={Path.cwd()}")
+        print(f"sys.executable={sys.executable}")
+        print(f"sys.path[0:5]={sys.path[:5]}")
+        print(f"project_root={project_root.resolve()}")
+        print(f"session_dir={session_dir.resolve()}")
+        print(f"temp_root={temp_root}")
     try:
-        # Basic existence checks
-        chunks_path = os.path.join(session_dir, "chunks.jsonl")
-        if not os.path.exists(chunks_path):
-            raise FileNotFoundError(f"Missing chunks.jsonl at {chunks_path}")
+        chunks_src = session_dir / "chunks.jsonl"
+        if not chunks_src.exists():
+            raise FileNotFoundError(f"Missing chunks.jsonl at {chunks_src}. Run L04 first.")
+        budget_src = session_dir / "budget_report.json"
+        if not budget_src.exists():
+            raise FileNotFoundError(f"Missing budget_report.json at {budget_src}")
+        allow_src = Path(find_allow_list_path(str(session_dir), session))
 
-        budget_path = os.path.join(session_dir, "budget_report.json")
-        if not os.path.exists(budget_path):
-            raise FileNotFoundError(f"Missing budget_report.json at {budget_path}")
+        tmp_chunks = temp_root / "input" / "chunks.jsonl"
+        tmp_budget = temp_root / "input" / "budget_report.json"
+        tmp_allow = temp_root / "input" / allow_src.name
+        shutil.copy2(chunks_src, tmp_chunks)
+        shutil.copy2(budget_src, tmp_budget)
+        shutil.copy2(allow_src, tmp_allow)
+        if readonly:
+            for p in (tmp_chunks, tmp_budget, tmp_allow):
+                try:
+                    os.chmod(p, 0o444)
+                except Exception:
+                    pass
 
-        allow_list_path = find_allow_list_path(session_dir, session_id)
-        allow_list = load_allow_list(allow_list_path)
-
+        allow_list = load_allow_list(str(tmp_allow))
         if not allow_list:
             raise ValueError("Allow-list is empty.")
-
-        # Config & prompts
-        cfg_dir = os.path.join(project_root, "config")
-        preset = load_or_create_preset(cfg_dir)
-        sys_prompt, user_template = ensure_prompts(project_root, preset.get("evidence_max_chars", 120))
-
-        # API key
+        cfg_dir = project_root / "config"
+        preset = load_or_create_preset(str(cfg_dir))
+        sys_prompt, user_template = ensure_prompts(str(project_root), preset.get("evidence_max_chars", 120))
         api_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if not api_key:
             raise EnvironmentError("OPENAI_API_KEY is not set.")
-
-        # Load inputs
-        chunks = load_chunks_jsonl(chunks_path)
-        budget_obj = read_json(budget_path)
+        chunks = load_chunks_jsonl(str(tmp_chunks))
+        budget_obj = read_json(str(tmp_budget))
         allowed_set = derive_allowed_set(budget_obj)
-
-        # Build PVVP array for the user prompt
         pvvparr_json = json.dumps(allow_list, ensure_ascii=False, indent=0)
 
         processed: List[Dict[str, Any]] = []
-        # Overwrite mapper_all.json every run for idempotency (even if empty)
-        write_json(mapper_all_path, processed)
+        tmp_all = temp_root / "out" / "mapper_all.json.partial"
+        write_json(str(tmp_all), processed)
+        atomic_publish(tmp_all, mapper_all_dest)
 
-        # Iterate over chunks in file order, process only allowed=true
         for ch in chunks:
             cid = int(ch["id"])
             if cid not in allowed_set:
-                # Respect budget: skip and ensure any old per-chunk output is gone
-                out_chunk_path = os.path.join(session_dir, f"mapper_chunk_{cid}.json")
-                if os.path.exists(out_chunk_path):
+                dest = session_dir / f"mapper_chunk_{cid}.json"
+                if dest.exists():
                     try:
-                        os.remove(out_chunk_path)
+                        dest.unlink()
                     except Exception:
                         pass
                 continue
 
             text = ch.get("text", "")
-            # Compose user prompt
             user_prompt = user_template.replace("{PVVP_ARRAY}", pvvparr_json).replace("{TEXT}", text)
 
-            # Call model
             raw = http_chat_completion(
                 api_key=api_key,
                 model=str(preset.get("model", DEFAULT_MAPPER_PRESET["model"])),
@@ -416,17 +445,16 @@ def main() -> int:
                 timeout_seconds=int(preset.get("timeout_seconds", 45)),
             )
 
-            # Always write last raw response (debug)
-            write_text(last_response_path, raw)
+            tmp_resp = temp_root / "out" / "mapper_response.json.partial"
+            write_text(str(tmp_resp), raw)
+            atomic_publish(tmp_resp, response_dest)
 
-            # Try parse
             parsed = None
             try:
                 parsed = json.loads(raw.strip())
             except Exception:
                 pass
 
-            # Repair retry if needed
             if parsed is None and int(preset.get("repair_retry", 1)) > 0:
                 repair_user = raw.strip()
                 raw2 = http_chat_completion(
@@ -439,54 +467,91 @@ def main() -> int:
                     max_tokens=int(preset.get("max_tokens", 600)),
                     timeout_seconds=int(preset.get("timeout_seconds", 45)),
                 )
-                write_text(last_response_path, raw2)  # update to last raw
+                write_text(str(tmp_resp), raw2)
+                atomic_publish(tmp_resp, response_dest)
                 try:
                     parsed = json.loads(raw2.strip())
                 except Exception:
                     parsed = None
 
-            out_err_path = os.path.join(session_dir, f"mapper_chunk_{cid}_error.txt")
-            out_chunk_path = os.path.join(session_dir, f"mapper_chunk_{cid}.json")
+            out_err_tmp = temp_root / "out" / f"mapper_chunk_{cid}_error.txt.partial"
+            out_chunk_tmp = temp_root / "out" / f"mapper_chunk_{cid}.json.partial"
 
             if parsed is None:
-                # Write short error and skip this chunk
-                write_text(out_err_path, "Invalid JSON after one repair attempt.")
-                # Ensure no stale success file remains
-                if os.path.exists(out_chunk_path):
+                write_text(str(out_err_tmp), "Invalid JSON after one repair attempt.")
+                atomic_publish(out_err_tmp, session_dir / f"mapper_chunk_{cid}_error.txt")
+                dest_chunk = session_dir / f"mapper_chunk_{cid}.json"
+                if dest_chunk.exists():
                     try:
-                        os.remove(out_chunk_path)
+                        dest_chunk.unlink()
                     except Exception:
                         pass
                 continue
-            else:
-                # Clean/Filter against allow-list
-                normalized = normalize_output_against_allowlist(
-                    parsed, allow_list, int(preset.get("evidence_max_chars", 120))
-                )
-                result_obj = {
-                    "chunk_id": cid,
-                    "mentioned_vars": normalized["mentioned_vars"],
-                    "evidence": normalized["evidence"],
-                }
-                write_json(out_chunk_path, result_obj)
-                processed.append(result_obj)
-                # Remove any old error file on success
-                if os.path.exists(out_err_path):
-                    try:
-                        os.remove(out_err_path)
-                    except Exception:
-                        pass
 
-        # Write combined (in order of processing)
-        write_json(mapper_all_path, processed)
+            normalized = normalize_output_against_allowlist(
+                parsed, allow_list, int(preset.get("evidence_max_chars", 120))
+            )
+            result_obj = {
+                "chunk_id": cid,
+                "mentioned_vars": normalized["mentioned_vars"],
+                "evidence": normalized["evidence"],
+            }
+            write_json(str(out_chunk_tmp), result_obj)
+            atomic_publish(out_chunk_tmp, session_dir / f"mapper_chunk_{cid}.json")
+            processed.append(result_obj)
+            err_dest = session_dir / f"mapper_chunk_{cid}_error.txt"
+            if err_dest.exists():
+                try:
+                    err_dest.unlink()
+                except Exception:
+                    pass
 
+        tmp_all = temp_root / "out" / "mapper_all.json.partial"
+        write_json(str(tmp_all), processed)
+        atomic_publish(tmp_all, mapper_all_dest)
+        if debug_dest.exists():
+            try:
+                debug_dest.unlink()
+            except Exception:
+                pass
+        if not keep_workdir:
+            shutil.rmtree(temp_root, ignore_errors=True)
         return 0
-
-    except Exception as e:
-        tb = traceback.format_exc(limit=5)
-        write_text(debug_path, f"{str(e)}\n\n{tb}")
+    except Exception:
+        tb = traceback.format_exc()
+        write_err(temp_root, "L06", tb)
+        tmp_debug = temp_root / "out" / "mapper_debug.txt.partial"
+        try:
+            write_text(str(tmp_debug), tb.splitlines()[-1])
+            atomic_publish(tmp_debug, debug_dest)
+        except Exception:
+            pass
+        print(tb, file=sys.stderr)
+        print(f"Workdir preserved at: {temp_root}", file=sys.stderr)
         return 1
 
 
+def main() -> int:
+    global tmp
+    parser = build_parser()
+    args, unknown = parser.parse_known_args()
+    if unknown:
+        print(f"[L06] Ignoring unknown args: {unknown}")
+    if not args.project_root or not args.session:
+        parser.error("--project-root and --session are required")
+    project_root = Path(args.project_root).resolve()
+    tmp = Path(args.workdir).resolve() if args.workdir else None
+    return run(args.session, project_root, tmp, args.keep_workdir, args.readonly, args.diag)
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main() or 0)
+    except Exception:
+        tb = traceback.format_exc()
+        try:
+            write_err(locals().get("tmp", Path(".")), "L06", tb)
+        except Exception:
+            pass
+        print(tb, file=sys.stderr)
+        sys.exit(1)
