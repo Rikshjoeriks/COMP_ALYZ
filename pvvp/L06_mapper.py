@@ -41,13 +41,10 @@ from typing import Dict, List, Any, Tuple, Set
 import shutil
 
 from pvvp.temp_utils import make_temp_root, atomic_publish
-from pvvp.secret_utils import load_api_key, mask_secret
+from pvvp.common.env_setup import load_env, get_openai_config, mask
 
-try:
-    from dotenv import load_dotenv, find_dotenv
-    load_dotenv(find_dotenv(), override=False)  # loads .env from the repo root
-except Exception:
-    pass
+LOADED_ENV_PATHS = load_env(override=False)
+cfg = get_openai_config()
 
 tmp: Path | None = None
 
@@ -336,7 +333,7 @@ def healthcheck(api_base: str, api_key: str, model: str, timeout: int, source: s
     except requests.RequestException as e:
         raise RuntimeError(f"OpenAI network error during healthcheck: {e}")
     if resp.status_code == 401:
-        masked = mask_secret(api_key)
+        masked = mask(api_key)
         raise RuntimeError(
             f"OpenAI auth failed (401). Key source={source}; key(masked)={masked}. "
             f"Ensure OPENAI_API_KEY is correct and has access to model '{model}'. Base={api_base}"
@@ -386,7 +383,7 @@ def http_chat_completion(
             raise RuntimeError(f"OpenAI network error: {e}")
 
         if resp.status_code == 401:
-            masked = mask_secret(api_key)
+            masked = mask(api_key)
             raise RuntimeError(
                 f"OpenAI auth failed (401). Key source={key_source}; key(masked)={masked}. Base={api_base}"
             )
@@ -465,17 +462,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--workdir", default=None)
     p.add_argument("--keep-workdir", action="store_true")
     p.add_argument("--readonly", action="store_true")
-    p.add_argument("--api-key", dest="api_key", default=None)
-    p.add_argument("--api-key-file", dest="api_key_file", default=None)
     p.add_argument(
         "--api-base",
         dest="api_base",
-        default=os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+        default=cfg["base_url"],
     )
     p.add_argument(
         "--model",
         dest="model",
-        default=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+        default=cfg["model"],
     )
     p.add_argument("--timeout", dest="timeout_seconds", type=int, default=45)
     p.add_argument("--diag", action="store_true")
@@ -778,17 +773,13 @@ def main() -> int:
         parser.error("--project-root and --session are required")
     project_root = Path(args.project_root).resolve()
     tmp = Path(args.workdir).resolve() if args.workdir else None
-    api_key, source = load_api_key(
-        cli_key=args.api_key,
-        key_file=Path(args.api_key_file) if args.api_key_file else None,
-        env_name="OPENAI_API_KEY",
-    )
+    api_key = cfg["api_key"]
+    source = "env"
+    api_base = args.api_base or cfg["base_url"]
+    model = args.model or cfg["model"]
     if args.diag:
-        print(f"[L06] Key source: {source}")
-        print(f"[L06] API base: {args.api_base}")
-        print(f"[L06] Model: {args.model}")
-    if not api_key:
-        raise RuntimeError("No API key found. Set OPENAI_API_KEY env var or use --api-key-file.")
+        print(f"[L06] API base: {api_base}")
+        print(f"[L06] Model: {model}")
     return run(
         args.session,
         project_root,
@@ -798,8 +789,8 @@ def main() -> int:
         args.diag,
         api_key,
         source,
-        args.api_base,
-        args.model,
+        api_base,
+        model,
         args.timeout_seconds,
     )
 

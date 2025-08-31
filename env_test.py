@@ -24,18 +24,22 @@ print("👋 running env_test.py")
 print("python:", sys.version)
 print("cwd:", os.getcwd())
 
+from pvvp.common.env_setup import load_env, get_openai_config, mask
+
 try:
-    from dotenv import load_dotenv, find_dotenv
-    # search upwards for a .env; don't override existing env vars
-    loaded = load_dotenv(find_dotenv(), override=False)
-    print("dotenv imported:", True, "| load_dotenv() returned:", loaded)
+    loaded = load_env(override=False)
+    print("dotenv imported:", True, "| load_env() loaded:", [str(p) for p in loaded])
 except Exception as e:
     if pytest:
-        pytest.fail(f"❌ python-dotenv import/load failed: {e!r}")
+        pytest.fail(f"❌ env load failed: {e!r}")
     else:
         raise
 
-key = os.getenv("OPENAI_API_KEY")
-print("OPENAI_API_KEY present:", bool(key))
-if key:
-    print("key length:", len(key))
+try:
+    cfg = get_openai_config()
+    key = cfg["api_key"]
+    print("OPENAI_API_KEY present:", bool(key))
+    if key:
+        print("key length:", len(key), "| preview:", mask(key))
+except Exception as e:
+    print("❌", e)

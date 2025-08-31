@@ -16,10 +16,15 @@ Usage examples:
 import os, json, argparse, traceback, sys
 from typing import Any, Dict, List, Set
 
+from pvvp.common.env_setup import load_env, get_openai_config, mask
+
 try:
     import requests
 except Exception:
     requests = None
+
+LOADED_ENV_PATHS = load_env(override=False)
+cfg = get_openai_config()
 
 def read(path): 
     with open(path,'r',encoding='utf-8') as f: return f.read()
@@ -32,10 +37,10 @@ def write_json(path, obj):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path,'w',encoding='utf-8') as f: json.dump(obj,f,ensure_ascii=False,indent=2)
 
-def http_chat(api_key, model, system, user, max_tokens=1500, temperature=0.9, top_p=1.0, timeout=60):
+def http_chat(api_key, base_url, model, system, user, max_tokens=1500, temperature=0.9, top_p=1.0, timeout=60):
     if requests is None:
         raise RuntimeError("pip install requests")
-    url = "https://api.openai.com/v1/chat/completions"
+    url = base_url.rstrip("/") + "/chat/completions"
     payload = {
         "model": model,
         "messages":[{"role":"system","content":system},{"role":"user","content":user}],
@@ -181,6 +186,7 @@ def main():
     ses  = args.session
     sdir = os.path.join(root, "sessions", ses)
     debug = os.path.join(sdir, "semantic_debug.txt")
+    write(debug, f"CWD: {os.getcwd()}\nLoaded .env files: {[str(p) for p in LOADED_ENV_PATHS]}\nOPENAI_API_KEY: {mask(cfg['api_key'])}\n")
 
     try:
         chunks_path = os.path.join(sdir, "chunks.jsonl")
@@ -200,10 +206,10 @@ def main():
             confirmed.update(mvs)
 
         # config
-        cfg = os.path.join(root, "config", "mapper_preset.json")
+        preset_path = os.path.join(root, "config", "mapper_preset.json")
         preset = {"model":"gpt-4o-mini","temperature":0.6,"top_p":1,"max_tokens":1500,"timeout_seconds":60,"evidence_max_chars":400}
-        if os.path.exists(cfg):
-            try: preset.update(read_json(cfg) or {})
+        if os.path.exists(preset_path):
+            try: preset.update(read_json(preset_path) or {})
             except: pass
         if args.temperature is not None:
             preset["temperature"] = float(args.temperature)
@@ -229,9 +235,8 @@ def main():
         chunks = load_chunks(chunks_path)
         allowed_ids = derive_allowed_ids(budget_path, chunks)
 
-        api_key = os.environ.get("OPENAI_API_KEY","").strip()
-        if not api_key: 
-            raise EnvironmentError("OPENAI_API_KEY is not set")
+        base_url = cfg["base_url"]
+        api_key = cfg["api_key"]
 
         review_items: List[Dict[str,Any]] = []
         pvvp_json = json.dumps(allow_list, ensure_ascii=False, indent=0)
@@ -251,8 +256,10 @@ def main():
 
             tries = 1 + args.retry_if_empty
             for attempt in range(tries):
-                raw = http_chat(api_key, 
-                                model=str(preset.get("model","gpt-4o-mini")),
+                raw = http_chat(
+                                api_key,
+                                base_url,
+                                model=str(preset.get("model", cfg["model"])),
                                 system=sys_prompt,
                                 user=user_prompt,
                                 max_tokens=int(preset.get("max_tokens",1500)),
