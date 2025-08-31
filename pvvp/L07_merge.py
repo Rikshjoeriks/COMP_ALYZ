@@ -132,6 +132,68 @@ def evidence_passes(ev: str, txt: str) -> Tuple[bool, str]:
 
 
 # ---------------------------------------------------------------------------
+# legacy merge fallback
+# ---------------------------------------------------------------------------
+
+def legacy_merge(session_dir: Path, chunk_rows: List[dict], budget_data: Any, tmp_root: Path) -> int:
+    allowed_ids = parse_allowed_chunk_ids(budget_data)
+    chunk_text_by_id = {int(r["id"]): r.get("text", "") for r in chunk_rows if "id" in r}
+    mapper_files = sorted(session_dir.glob("mapper_chunk_*.json"))
+
+    mentioned: List[str] = []
+    evidence: Dict[str, str] = {}
+    reason_map: Dict[str, str] = {}
+
+    for mf in mapper_files:
+        mapper = load_json(mf)
+        cid = mapper.get("chunk_id")
+        try:
+            cid = int(cid)
+        except Exception:
+            continue
+        if allowed_ids and cid not in allowed_ids:
+            continue
+        chunk_text = chunk_text_by_id.get(cid, "")
+        res = mapper.get("results")
+        if isinstance(res, list):
+            items = res
+        else:
+            mv = mapper.get("mentioned_vars") or []
+            evid = mapper.get("evidence") or {}
+            items = [{"nr": m, "match": evid.get(m, "")} for m in mv]
+        for it in items:
+            nr = str(it.get("nr", "")).strip()
+            match = str(it.get("match", ""))
+            if not nr:
+                continue
+            ok, reason = evidence_passes(match, chunk_text)
+            if not ok:
+                continue
+            if nr not in mentioned:
+                mentioned.append(nr)
+            evidence[nr] = match
+            reason_map[nr] = reason
+
+    merge_result = {
+        "mentioned_vars": mentioned,
+        "evidence": evidence,
+        "evidence_reason": reason_map,
+    }
+
+    out_res = tmp_root / "out" / "merge_result.json"
+    out_rep = tmp_root / "out" / "merge_report.json"
+    out_dbg = tmp_root / "out" / "merge_debug.json"
+    out_res.parent.mkdir(parents=True, exist_ok=True)
+    json.dump(merge_result, out_res.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    json.dump({}, out_rep.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    json.dump({}, out_dbg.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    atomic_publish(out_res, session_dir / "merge_result.json")
+    atomic_publish(out_rep, session_dir / "merge_report.json")
+    atomic_publish(out_dbg, session_dir / "merge_debug.json")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -163,24 +225,23 @@ def main(argv: List[str] | None = None) -> int:
         budget_data = load_json(budget_path)
         master_rows, header_info = load_master(master_path)
         master_index = [r for r in master_rows if r.get("nr") and not r.get("is_tt")]
+        name_to_nr = {r["lv"]: r["nr"] for r in master_rows if r.get("nr") and r.get("lv")}
+        if args.diag_merge:
+            print(
+                f"[diag] master headers: {header_info}; non_tt_count={len(master_index)}"
+            )
 
         if not master_index:
-            out_res = tmp_root / "out" / "merge_result.json"
-            out_rep = tmp_root / "out" / "merge_report.json"
-            out_dbg = tmp_root / "out" / "merge_debug.json"
-            out_res.parent.mkdir(parents=True, exist_ok=True)
-            json.dump({}, out_res.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
-            json.dump({"errors": ["empty_master_index"], "header_info": header_info}, out_rep.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
-            json.dump({"header_info": header_info}, out_dbg.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
-            atomic_publish(out_res, session_dir / "merge_result.json")
-            atomic_publish(out_rep, session_dir / "merge_report.json")
-            atomic_publish(out_dbg, session_dir / "merge_debug.json")
-            if args.diag_merge:
-                print(f"[diag] master headers: {header_info}")
-            return 1
+            print(
+                "[merge] Warning: no NR-coded records found; falling back to legacy merge",
+                file=sys.stderr,
+            )
+            return legacy_merge(session_dir, chunk_rows, budget_data, tmp_root)
 
         valid_nrs = {r["nr"] for r in master_index}
-        chunk_text_by_id = {int(r["id"]): r.get("text", "") for r in chunk_rows if "id" in r}
+        chunk_text_by_id = {
+            int(r["id"]): r.get("text", "") for r in chunk_rows if "id" in r
+        }
         allowed_ids = parse_allowed_chunk_ids(budget_data)
 
         mapper_files = sorted(session_dir.glob("mapper_chunk_*.json"))
@@ -203,15 +264,27 @@ def main(argv: List[str] | None = None) -> int:
                 continue
             processed_chunk_ids.append(cid)
             chunk_text = chunk_text_by_id.get(cid, "")
-            results = mapper.get("results") or []
+            results = mapper.get("results")
             if not isinstance(results, list):
-                continue
+                mv = mapper.get("mentioned_vars") or []
+                ev_map = mapper.get("evidence") or {}
+                results = [
+                    {
+                        "nr": name_to_nr.get(m, m),
+                        "verdict": "Jā",
+                        "match": ev_map.get(m, ""),
+                    }
+                    for m in mv
+                ]
             for item in results:
                 if not isinstance(item, dict):
                     continue
                 nr = str(item.get("nr", "")).strip().upper()
+                verdict = str(item.get("verdict", "")).strip()
                 match = str(item.get("match", ""))
                 total_mentions += 1
+                if verdict not in ("Jā", "Varbūt"):
+                    continue
                 if nr not in valid_nrs:
                     unresolved.append({"nr": nr})
                     mapping_stats["nr_unresolved"] += 1
@@ -220,7 +293,17 @@ def main(argv: List[str] | None = None) -> int:
                 if not ok:
                     drops.append({"nr": nr, "chunk": cid, "reason": reason, "ev": match})
                     continue
-                hits.append({"nr": nr, "chunk_id": cid, "evidence": match, "reason": reason})
+                if reason.startswith("fuzzy"):
+                    verdict = "Varbūt"
+                hits.append(
+                    {
+                        "nr": nr,
+                        "chunk_id": cid,
+                        "evidence": match,
+                        "reason": reason,
+                        "verdict": verdict,
+                    }
+                )
                 mapping_stats["nr_hits"] += 1
 
         reason_priority = {"exact": 3, "normalized": 2, "fuzzy": 1}
@@ -239,9 +322,12 @@ def main(argv: List[str] | None = None) -> int:
                 best_by_nr[nr] = h
 
         merge_result = {
-            "mentioned_vars": order,
-            "evidence": {nr: best_by_nr[nr]["evidence"] for nr in order},
-            "evidence_reason": {nr: best_by_nr[nr]["reason"] for nr in order},
+            nr: {
+                "verdict": best_by_nr[nr]["verdict"],
+                "evidence": best_by_nr[nr]["evidence"],
+                "evidence_reason": best_by_nr[nr]["reason"],
+            }
+            for nr in order
         }
 
         sample_master = [{"raw": r["lv"], "norm": norm_lv(r["lv"])} for r in master_index[:5]]
@@ -258,7 +344,14 @@ def main(argv: List[str] | None = None) -> int:
 
         merge_debug = {
             "header_info": header_info,
-            "accepted_by_nr": {nr: {"reason": best_by_nr[nr]["reason"], "chunk": best_by_nr[nr]["chunk_id"]} for nr in order},
+            "accepted_by_nr": {
+                nr: {
+                    "reason": best_by_nr[nr]["reason"],
+                    "chunk": best_by_nr[nr]["chunk_id"],
+                    "verdict": best_by_nr[nr]["verdict"],
+                }
+                for nr in order
+            },
             "drops": drops,
             "unresolved": unresolved,
         }

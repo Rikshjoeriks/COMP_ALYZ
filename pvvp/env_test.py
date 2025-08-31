@@ -1,12 +1,11 @@
-# env_test.py
-import os
-from dotenv import load_dotenv
+from pathlib import Path
+from pvvp.common.env_setup import load_env, get_openai_config, mask
 
-load_dotenv()  # loads .env from the current working directory (or parents)
-key = os.getenv("OPENAI_API_KEY")
-
-print("cwd:", os.getcwd())
-if key and key.startswith("sk-"):
-    print(f"✅ OPENAI_API_KEY loaded: length={len(key)} (value hidden)")
-else:
-    print("❌ OPENAI_API_KEY not found. Make sure you created a .env file next to env_test.py.")
+print("cwd:", Path().resolve())
+loaded = load_env(override=False)
+print("Loaded .env files:", [str(p) for p in loaded])
+try:
+    cfg = get_openai_config()
+    print(f"✅ OPENAI_API_KEY loaded: {mask(cfg['api_key'])}")
+except Exception as e:
+    print("❌", e)

@@ -41,12 +41,17 @@ def load_allow_list(path: str) -> List[str]:
 def load_merge_result(path: str) -> Tuple[List[str], Dict[str, str], Dict[str, str]]:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    mentioned = data.get("mentioned_vars", []) or []
-    evidence = data.get("evidence", {}) or {}
-    reasons = data.get("evidence_reason", {}) or {}
+    if "mentioned_vars" in data:
+        mentioned = data.get("mentioned_vars", []) or []
+        evidence = data.get("evidence", {}) or {}
+        reasons = data.get("evidence_reason", {}) or {}
+    else:
+        mentioned = list(data.keys())
+        evidence = {k: (v.get("evidence", "") if isinstance(v, dict) else "") for k, v in data.items()}
+        reasons = {k: (v.get("evidence_reason", "") if isinstance(v, dict) else "") for k, v in data.items()}
     mentioned = [m.strip() for m in mentioned]
-    evidence = { (k.strip()): (v if isinstance(v, str) else "") for k, v in evidence.items() }
-    reasons = { (k.strip()): (v if isinstance(v, str) else "") for k, v in reasons.items() }
+    evidence = {(k.strip()): (v if isinstance(v, str) else "") for k, v in evidence.items()}
+    reasons = {(k.strip()): (v if isinstance(v, str) else "") for k, v in reasons.items()}
     return mentioned, evidence, reasons
 
 def load_master_csv(path: str) -> List[dict]:
