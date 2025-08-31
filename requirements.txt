@@ -1,0 +1,4 @@
+﻿python-dotenv>=1.0,<2
+# If you use these elsewhere, add them too:
+# requests>=2.31
+# rapidfuzz>=3.0
