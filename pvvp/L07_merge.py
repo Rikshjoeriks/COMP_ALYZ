@@ -217,6 +217,8 @@ def main(argv: List[str] | None = None) -> int:
         unresolved: List[Dict[str, Any]] = []
 
         hits: List[Dict[str, Any]] = []
+        best_by_nr: Dict[str, Dict[str, Any]] = {}
+        order: List[str] = []
         for mf in mapper_files:
             try:
                 mapper = load_json(mf)
@@ -246,26 +248,27 @@ def main(argv: List[str] | None = None) -> int:
                 if not nr:
                     unresolved.append({"mention": raw})
                     continue
-                if allow_nr_set and nr not in allow_nr_set:
-                    continue
                 ev = ev_map.get(raw_var)
-                ok, reason = evidence_passes(ev, chunk_text)
+                ev_str = ev if isinstance(ev, str) else ""
+                ok, reason = evidence_passes(ev_str, chunk_text)
                 if not ok:
                     drops.append({"nr": nr, "reason": reason, "chunk": cid, "ev": ev})
                     continue
-                hits.append({
-                    "nr": nr,
-                    "var_name_src": raw,
-                    "chunk_id": cid,
-                    "evidence": ev,
-                    "reason": reason,
-                })
+                # Ensure nr is not None before adding to hits
+                if nr is not None:
+                    hits.append({
+                        "nr": nr,
+                        "var_name_src": raw,
+                        "chunk_id": cid,
+                        "evidence": ev_str,
+                        "reason": reason,
+                    })
 
         reason_priority = {"exact": 3, "normalized": 2, "fuzzy": 1}
-        best_by_nr: Dict[str, Dict[str, Any]] = {}
-        order: List[str] = []
         for h in hits:
             nr = h["nr"]
+            if nr is None:
+                continue
             rkey = h["reason"].split("_")[0]
             pr = reason_priority.get(rkey, 0)
             existing = best_by_nr.get(nr)
@@ -275,6 +278,8 @@ def main(argv: List[str] | None = None) -> int:
                 continue
             ekey = existing["reason"].split("_")[0]
             epr = reason_priority.get(ekey, 0)
+            if pr > epr or (pr == epr and len(h.get("evidence", "")) > len(existing.get("evidence", ""))):
+                best_by_nr[nr] = h
             if pr > epr or (pr == epr and len(h.get("evidence", "")) > len(existing.get("evidence", ""))):
                 best_by_nr[nr] = h
 
