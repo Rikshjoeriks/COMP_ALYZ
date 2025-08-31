@@ -1,0 +1,1 @@
+INFO: Rows total: 116, is_tt==Y: 15, mentioned_YN==Y: 8, positives: 8

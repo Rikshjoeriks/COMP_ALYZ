@@ -1,0 +1,12 @@
+masterlists:
+  MCAICE: C:/Users/vanag/Documents/INCHCAPE/pvvp_app/MasterlistsLVcsv/LV_MCAICEEmasterlist.csv
+  MCAFHEV: C:/Users/vanag/Documents/INCHCAPE/pvvp_app/MasterlistsLVcsv/LV_MCAFHEVVmasterlist.csv
+  MCAPHEV: C:/Users/vanag/Documents/INCHCAPE/pvvp_app/MasterlistsLVcsv/LV_MCAPHEVVmasterlist.csv
+  EV: C:/Users/vanag/Documents/INCHCAPE/pvvp_app/MasterlistsLVcsv/LV_EVmasterlist.csv
+  BEV: C:/Users/vanag/Documents/INCHCAPE/pvvp_app/MasterlistsLVcsv/LV_BEVmasterlist.csv
+output_dir: runs
+chunk_size: 10
+csv_delimiter: ','
+csv_encoding: utf-8
+keep_tt_rows: true
+skip_tt_for_matching: true

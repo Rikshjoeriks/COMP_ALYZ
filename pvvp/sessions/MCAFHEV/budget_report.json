@@ -1,0 +1,6 @@
+{
+  "chunks": [
+    { "chunk_id": 1, "allowed": true },
+    { "chunk_id": 2, "allowed": true }
+  ]
+}

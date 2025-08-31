@@ -1,0 +1,6 @@
+BUDGET: OK (est €0.00 / cap €1.00)
+BUDGET: OK (est €0.00 / cap €1.00)
+BUDGET: OK (est €0.29 / cap €1.00)
+BUDGET: OK (est €0.29 / cap €1.00)
+BUDGET: CAPPED after 2 call(s) (est €0.71)
+BUDGET: CAPPED after 2 call(s) (est €0.71)

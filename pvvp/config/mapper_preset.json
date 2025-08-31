@@ -1,0 +1,9 @@
+{
+  "model": "gpt-4o-mini",
+  "temperature": 0.55,
+  "top_p": 1,
+  "max_tokens": 1900,
+  "timeout_seconds": 60,
+  "repair_retry": 1,
+  "evidence_max_chars": 500
+}

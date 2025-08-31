@@ -1,0 +1,13 @@
+{
+  "chunk_id": 1,
+  "mentioned_vars": [
+    "Apsildāms vadītāja sēdeklis",
+    "Apsildāms pasažiera sēdeklis",
+    "Avārijas zvans"
+  ],
+  "evidence": {
+    "Apsildāms vadītāja sēdeklis": "Apsildāmi priekšējie sēdekļi",
+    "Apsildāms pasažiera sēdeklis": "Apsildāmi priekšējie sēdekļi",
+    "Avārijas zvans": "Ārkārtas un avārijas izsaukums (eCall)"
+  }
+}

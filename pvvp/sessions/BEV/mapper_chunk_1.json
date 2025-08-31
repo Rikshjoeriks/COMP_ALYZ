@@ -1,0 +1,17 @@
+{
+  "chunk_id": 1,
+  "mentioned_vars": [
+    "Durvju spoguļi - elektriski/sildāmi/salokāmi",
+    "Kruīza kontrole – adaptīvā",
+    "Stāvvietas palīgs – priekšējie sensori",
+    "Stāvvietas palīgs – aizmugurējie sensori",
+    "Apsildāms stūres rats"
+  ],
+  "evidence": {
+    "Durvju spoguļi - elektriski/sildāmi/salokāmi": "Elektriski regulējami, nolokāmi, apsildāmi sānu atpakaļskata spoguļi",
+    "Kruīza kontrole – adaptīvā": "Adaptīvā kruīza kontrole",
+    "Stāvvietas palīgs – priekšējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē",
+    "Stāvvietas palīgs – aizmugurējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē",
+    "Apsildāms stūres rats": "3-spieķu multifunkcionāla ādas sporta stūre ar apsildi"
+  }
+}

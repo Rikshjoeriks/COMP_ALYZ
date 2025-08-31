@@ -1,0 +1,19 @@
+{
+  "chunk_id": 2,
+  "mentioned_vars": [
+    "Gaisa kondicionētājs",
+    "Durvju spoguļi - elektriski/sildāmi/nolokāmi",
+    "Priekšējie lukturi – LED",
+    "Android Auto un Apple CarPlay - bezvadu",
+    "Kruīza kontrole",
+    "Stāvbremze – elektriska"
+  ],
+  "evidence": {
+    "Gaisa kondicionētājs": "Automātiskā gaisa kondicionēšanas sistēma",
+    "Durvju spoguļi - elektriski/sildāmi/nolokāmi": "Apsildāmi un automātiski pielokāmi sānu spoguļi",
+    "Priekšējie lukturi – LED": "LED priekšējie lukturi",
+    "Android Auto un Apple CarPlay - bezvadu": "Bezvadu Apple CarPlay®",
+    "Kruīza kontrole": "Kruīza kontrole ar ātruma ierobežotāju",
+    "Stāvbremze – elektriska": "Neeksistējoša frāze"
+  }
+}

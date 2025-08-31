@@ -1,0 +1,44 @@
+2025-08-26T23:25:03Z | RUN START session=EV
+2025-08-26T23:25:03Z | INPUT saved bytes=5437
+2025-08-26T23:31:18Z | RUN START session=EV
+2025-08-26T23:31:18Z | INPUT saved bytes=5437
+2025-08-26T23:35:54Z | RUN START session=EV
+2025-08-26T23:35:54Z | INPUT saved bytes=5437
+2025-08-27T00:07:10Z | RUN START session=EV
+2025-08-27T00:07:10Z | INPUT saved bytes=5437
+2025-08-27T00:13:06Z | RUN START session=EV
+2025-08-27T00:13:06Z | INPUT saved bytes=5437
+2025-08-27T00:20:58Z | RUN START session=EV
+2025-08-27T00:20:58Z | INPUT saved bytes=5437
+2025-08-27T00:27:00Z | RUN START session=EV
+2025-08-27T00:27:00Z | INPUT saved bytes=5437
+2025-08-27T00:27:00Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-27T00:27:00Z | ALLOW-LIST derived count=101
+2025-08-27T00:27:00Z | FAIL normalize
+2025-08-27T00:27:00Z | FAIL chunker
+2025-08-27T00:27:00Z | BUDGET allowed_chunks=[]
+RUN: PARTIAL (chunks processed 0/0; positives 0; capped=false)
+2025-08-27T00:27:11Z | RUN START session=EV
+2025-08-27T00:27:11Z | INPUT saved bytes=5437
+2025-08-27T00:27:11Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-27T00:27:11Z | ALLOW-LIST derived count=101
+2025-08-27T00:27:11Z | FAIL normalize
+2025-08-27T00:27:11Z | FAIL chunker
+2025-08-27T00:27:11Z | BUDGET allowed_chunks=[]
+RUN: PARTIAL (chunks processed 0/0; positives 0; capped=false)
+2025-08-27T04:10:50Z | RUN START session=EV
+2025-08-27T04:10:50Z | INPUT saved bytes=5437
+2025-08-27T04:10:50Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-27T04:10:50Z | ALLOW-LIST derived count=101
+2025-08-27T04:10:50Z | FAIL normalize
+2025-08-27T04:10:50Z | FAIL chunker
+2025-08-27T04:10:50Z | BUDGET allowed_chunks=[]
+RUN: PARTIAL (chunks processed 0/0; positives 0; capped=false)
+2025-08-31T11:00:55Z | RUN START session=EV
+2025-08-31T11:00:55Z | INPUT saved bytes=5437
+2025-08-31T11:00:55Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-31T11:00:55Z | ALLOW-LIST derived count=101
+2025-08-31T11:00:55Z | FAIL normalize
+2025-08-31T11:00:55Z | FAIL chunker
+2025-08-31T11:00:55Z | BUDGET allowed_chunks=[]
+RUN: PARTIAL (chunks processed 0/0; positives 0; capped=false)

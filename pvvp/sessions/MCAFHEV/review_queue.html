@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="lv"><meta charset="utf-8">
+<title>PVVP Semantiskā pārskatīšana — MCAFHEV</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:24px;}
+h1{margin:0 0 8px;} .meta{color:#555;margin:0 0 16px;}
+.card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:8px 0;}
+label{display:flex;gap:10px;align-items:flex-start;}
+textarea{width:100%;min-height:48px;}
+.fixed{position:fixed;bottom:16px;right:16px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+</style>
+<h1>PVVP Semantiskā pārskatīšana</h1>
+<p class="meta">Sesija: <b>MCAFHEV</b></p>
+<div id="root"></div>
+<button class="fixed" onclick="download()">Lejupielādēt atzīmes (JSON)</button>
+<script>
+const data = {"candidates": [{"status": "Yes", "chunk_id": 1, "name": "Avārijas zvans", "evidence": "Ārkārtas un avārijas izsaukums (eCall)"}, {"status": "Yes", "chunk_id": 2, "name": "Android Auto un Apple CarPlay - bezvadu", "evidence": "Bezvadu Apple CarPlay®"}, {"status": "Yes", "chunk_id": 2, "name": "Kruīza kontrole", "evidence": "Kruīza kontrole ar ātruma ierobežotāju"}, {"status": "Yes", "chunk_id": 2, "name": "Stāvbremze – elektriska", "evidence": "Elektroniska rokas bremze ar automātiskās stāvbremzes funkciju"}, {"status": "Yes", "chunk_id": 2, "name": "Priekšējie vējstikla tīrītāji - automātiski", "evidence": "Automātiski stikla tīrītāji un lietus sensors"}, {"status": "Yes", "chunk_id": 2, "name": "Apsildāmi aizmugurējie sēdekļi", "evidence": "Apsildāmi un automātiski pielokāmi sānu spoguļi"}, {"status": "Yes", "chunk_id": 2, "name": "Dienas gaitas lukturi - LED", "evidence": "LED dienas apgaismojuma lukturi"}, {"status": "Warning", "chunk_id": 2, "name": "Kamera - aizmugurējais skats", "evidence": "Atpakaļskata kamera", "note": "Neskaidrs, jo var attiekties uz citu kameru"}], "unscrapped": ["12 V bagāžas nodalījumā", "16\" tērauda rati", "16\" vieglmetāla rati", "17\" vieglmetāla riteņi", "18\" tērauda riteņi", "18\" vieglmetāla riteņi", "19\" vieglmetāla riteņi", "4X4 pilna laika (4WD / AWD)", "AEBS ar gājēju un velosipēdistu atpazīšanu", "Aklās zona uzraudzība", "Aklās zona uzraudzība ar šķērssatiksmes brīdinājumu", "Android Auto un Apple CarPlay", "Android Auto un Apple CarPlay - bezvadu", "Apgaismojums - salons ar daudzkrāsu LED", "Apsildāmi aizmugurējie sēdekļi", "Apsildāms stūres rats", "Automātiski tumšojams salona spogulis", "Automātiskā parkošanās sistēma", "Automātiskā pārnesumkārba", "Avārijas zvans", "Bagāžnieka durvis - elektriski atveramas", "Bezatslēgas iedarbināšana", "Bezatslēgas piekļuve", "Bezvadu uzlāde", "Centrālā konsole ar roku balstu", "Daudzfunkcionāls skārienjūtīgais ekrāns - 10 - 11,9\"", "Daudzfunkcionāls skārienjūtīgais ekrāns - 12 - \"", "Daudzfunkcionāls skārienjūtīgais ekrāns - 6 - 7,9\"", "Daudzfunkcionāls skārienjūtīgais ekrāns - 8 - 9,9\"", "Dienas gaitas lukturi - LED", "Digitālais displejs - 8,9 collas", "Digitālais displejs 12+\"", "Digitālais displejs 9“ - 11,9”", "Durvju spoguļi - Elektriski/sildāmi", "Elektriski regulējams pasažiera sēdeklis", "Elektriski regulējams pasažiera sēdeklis ar atmiņu", "Elektriski regulējams vadītāja sēdeklis", "Elektriski regulējams vadītāja sēdeklis ar atmiņu", "FHEV", "Gaisa kondicionētājs - EATC 1 zona", "Gaisa kondicionētājs - EATC 2 zonas", "Gaisa kondicionētājs - EATC 3 zonas", "Gaisa spilveni – aizkari", "Gaisa spilveni – ceļgaliem vai centrā", "Gaisa spilveni – sānos", "Head - Up displejs", "Joslas centrēšnas un apdzīšanas palīgs", "Jumta sliedes", "Kamera - aizmugurējais skats", "Kamera - priekšējais 360° skats", "Kruīza kontrole", "Kruīza kontrole - adaptīva", "Kruīza kontrole - adaptīva Stop&Go", "Kruīza kontrole - adaptīva satiksmes sastrēgumos", "Kruīza kontrole - adaptīva, balstīta uz navigācijas sistēmu", "Metāliska krāsa kā standarts", "Navigācijas centrs", "Navigācijas centrs - savienots", "PHEV", "Panorāmas jumts", "Papildus garantija – 10 gadi", "Papildus garantija – 2 gadi", "Papildus garantija – 3 gadi", "Papildus garantija – 4 gadi", "Papildus garantija – 5 gadi", "Papildus garantija – 6 gadi", "Papildus garantija – 7 gadi", "Parkošanās palīgsistēma – aizmugurējie sensori", "Parkošanās palīgsistēma – priekšējie sensori", "Pasažiera sēdekļa jostasvietas regulēšana elektriski", "Pasažiera sēdekļa jostasvietas regulēšana manuāli", "Priekšējie lukturi – adaptīvie LED ar Matrix vai Glare Free", "Priekšējie miglas lukturi - LED", "Priekšējie miglas lukturi – LED integrēti", "Priekšējie vējstikla tīrītāji - automātiski", "Priekšējo lukturu vadība – automātiska ieslēgšana/izslēgšana", "Priekšējo lukturu vadība – automātiska ieslēgšana/izslēgšana un tālās/tuvās gaismas", "Rezerves ritenis", "Riteņu pārsegi", "Sadursmes mīkstināšana –2. sadursme", "Salona gaisa attīrītājs", "Signalizācija – perimetrs", "Sildāms vējstikls", "Stikls - tonēts ar privātuma aizsardzību aizmugurē", "Stāvbremze – elektriska", "Sēdekļu apdare – Alcantara/sintētiskā āda", "Sēdekļu apdare – audums/sintētiskā āda", "Sēdekļu apdare – sintētiskā āda", "Vadītāja sēdekļa jostasvietas regulēšana elektriski", "Vadītāja sēdekļa jostasvietas regulēšana manuāli", "Vieds palīgs ar AI", "Zīmola audio sistēma", "mHEV", "Ādas (ieskaitot Sensico) stūres rats"]};
+function el(tag, attrs={}, ...kids){
+  const e=document.createElement(tag); for(const[k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+  for(const k of kids) e.append(k); return e;
+}
+const root = document.getElementById('root');
+root.append(el('h2',{},'Kandidāti (semantiskie atradumi)'));
+data.candidates.forEach((c,i)=>{
+  const card = el('div',{class:'card'});
+  const ck = el('input',{type:'checkbox',id:'ck'+i});
+  const lab = el('label',{for:'ck'+i},
+    ck,
+    el('div',{},
+      el('div',{}, el('b',{}, c.name),'  —  ', c.status),
+      el('div',{}, 'Chunk ID: ', c.chunk_id),
+      el('div',{}, 'Evidence: "', c.evidence, '"'),
+      c.note? el('div',{}, 'Piezīme: ', c.note) : ''
+    )
+  );
+  const note = el('textarea',{placeholder:'Papildu piezīme (nav obligāti)', id:'nt'+i});
+  card.append(lab,note);
+  root.append(card);
+});
+root.append(el('h2',{},'Neatrastie no allow-list (unscrapped)'));
+const ul = el('ul'); data.unscrapped.forEach(n=>ul.append(el('li',{},n))); root.append(ul);
+
+function download(){
+  const out = data.candidates.map((c,i)=>({...c, approved: document.getElementById('ck'+i).checked,
+    review_note: document.getElementById('nt'+i).value.trim()}));
+  const blob = new Blob([JSON.stringify({approved:out, unscrapped:data.unscrapped}, null, 2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='review_decisions.json'; a.click();
+}
+</script></html>

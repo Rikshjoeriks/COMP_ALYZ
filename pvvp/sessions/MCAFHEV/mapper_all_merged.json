@@ -1,0 +1,44 @@
+[
+  {
+    "chunk_id": 1,
+    "mentioned_vars": [
+      "Apsildāms vadītāja sēdeklis",
+      "Apsildāms pasažiera sēdeklis",
+      "Avārijas zvans"
+    ],
+    "evidence": {
+      "Apsildāms vadītāja sēdeklis": "Apsildāmi priekšējie sēdekļi",
+      "Apsildāms pasažiera sēdeklis": "Apsildāmi priekšējie sēdekļi",
+      "Avārijas zvans": "Ārkārtas un avārijas izsaukums (eCall)"
+    }
+  },
+  {
+    "chunk_id": 2,
+    "mentioned_vars": [
+      "Gaisa kondicionētājs",
+      "Durvju spoguļi - elektriski/sildāmi/nolokāmi",
+      "Priekšējie lukturi – LED",
+      "Priekšējie lukturi – adaptīvie LED bez Matrix vai Glare Free",
+      "17\" tērauda riteņi",
+      "Android Auto un Apple CarPlay - bezvadu",
+      "Kruīza kontrole",
+      "Stāvbremze – elektriska",
+      "Priekšējie vējstikla tīrītāji - automātiski",
+      "Dienas gaitas lukturi - LED",
+      "16\" tērauda rati"
+    ],
+    "evidence": {
+      "Gaisa kondicionētājs": "Automātiskā gaisa kondicionēšanas sistēma",
+      "Durvju spoguļi - elektriski/sildāmi/nolokāmi": "Apsildāmi un automātiski pielokāmi sānu spoguļi",
+      "Priekšējie lukturi – LED": "LED priekšējie lukturi",
+      "Priekšējie lukturi – adaptīvie LED bez Matrix vai Glare Free": "Inteliģentie automātiskie priekšējie luktņi",
+      "17\" tērauda riteņi": "17\" tērauda diski, Sakura",
+      "Android Auto un Apple CarPlay - bezvadu": "Bezvadu Apple CarPlay®",
+      "Kruīza kontrole": "Kruīza kontrole ar ātruma ierobežotāju",
+      "Stāvbremze – elektriska": "Elektroniska rokas bremze ar automātiskās stāvbremzes funkciju",
+      "Priekšējie vējstikla tīrītāji - automātiski": "Automātiski stikla tīrītāji un lietus sensors",
+      "Dienas gaitas lukturi - LED": "LED dienas apgaismojuma lukturi",
+      "16\" tērauda rati": "17\" tērauda diski, Sakura"
+    }
+  }
+]

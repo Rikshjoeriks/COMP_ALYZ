@@ -1,0 +1,10 @@
+{
+  "rows_total": 116,
+  "tt_rows": 15,
+  "feature_rows": 101,
+  "positives_after_merge": 8,
+  "unknown_in_merge_dropped": 0,
+  "duplicate_variable_names": [],
+  "drift": [],
+  "notes": []
+}

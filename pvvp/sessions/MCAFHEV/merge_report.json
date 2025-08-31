@@ -1,0 +1,17 @@
+{
+  "processed_chunk_ids": [
+    1,
+    2
+  ],
+  "total_mentions_in_chunks": 9,
+  "duplicates_dropped": 0,
+  "evidence_failures": [
+    {
+      "chunk_id": 2,
+      "var": "Stāvbremze – elektriska",
+      "evidence": "Neeksistējoša frāze",
+      "reason": "substring_not_found"
+    }
+  ],
+  "final_mentioned_count": 8
+}

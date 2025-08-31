@@ -1,0 +1,17 @@
+{
+  "positives": [
+    {
+      "name": "Avārijas zvans",
+      "evidence": "Ārkārtas un avārijas izsaukums (eCall)"
+    },
+    {
+      "name": "Apsildāms pasažiera sēdeklis",
+      "evidence": "Apsildāmi priekšējie sēdekļi"
+    },
+    {
+      "name": "Vadītāja sēdekļa jostasvietas regulēšana elektriski",
+      "evidence": "Autovadītāja sēdeklis ar regulējamu augstumu"
+    }
+  ],
+  "warnings": []
+}

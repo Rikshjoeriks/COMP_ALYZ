@@ -1,0 +1,84 @@
+{
+  "approved": [
+    {
+      "chunk_id": 1,
+      "status": "Yes",
+      "name": "Avārijas zvans",
+      "evidence": "Ārkārtas un avārijas izsaukums (eCall)",
+      "approved": true,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 1,
+      "status": "Yes",
+      "name": "Vadītāja sēdekļa jostasvietas regulēšana elektriski",
+      "evidence": "Autovadītāja sēdeklis ar regulējamu augstumu",
+      "approved": false,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 2,
+      "status": "Yes",
+      "name": "Android Auto un Apple CarPlay - bezvadu",
+      "evidence": "Bezvadu Apple CarPlay®",
+      "approved": true,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 2,
+      "status": "Yes",
+      "name": "Android Auto un Apple CarPlay - bezvadu",
+      "evidence": "Bezvadu Android AutoTM",
+      "approved": true,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 2,
+      "status": "Yes",
+      "name": "Kruīza kontrole",
+      "evidence": "Kruīza kontrole ar ātruma ierobežotāju",
+      "approved": true,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 2,
+      "status": "Yes",
+      "name": "Stāvbremze – elektriska",
+      "evidence": "Elektroniska rokas bremze ar automātiskās stāvbremzes funkciju",
+      "approved": true,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 2,
+      "status": "Yes",
+      "name": "Priekšējie vējstikla tīrītāji - automātiski",
+      "evidence": "Automātiski stikla tīrītāji un lietus sensors",
+      "approved": true,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 2,
+      "status": "Yes",
+      "name": "Dienas gaitas lukturi - LED",
+      "evidence": "LED dienas apgaismojuma lukturi",
+      "approved": true,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 2,
+      "status": "Yes",
+      "name": "Apsildāms vadītāja sēdeklis",
+      "evidence": "Apsildāmi un automātiski pielokāmi sānu spoguļi",
+      "approved": true,
+      "review_note": ""
+    },
+    {
+      "chunk_id": 2,
+      "status": "Yes",
+      "name": "16\" tērauda rati",
+      "evidence": "17\" tērauda diski, Sakura",
+      "approved": false,
+      "review_note": ""
+    }
+  ]
+}

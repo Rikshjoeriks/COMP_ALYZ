@@ -1,0 +1,22 @@
+{
+  "mentioned_vars": [
+    "Apsildāms vadītāja sēdeklis",
+    "Apsildāms pasažiera sēdeklis",
+    "Avārijas zvans",
+    "Gaisa kondicionētājs",
+    "Durvju spoguļi - elektriski/sildāmi/nolokāmi",
+    "Priekšējie lukturi – LED",
+    "Android Auto un Apple CarPlay - bezvadu",
+    "Kruīza kontrole"
+  ],
+  "evidence": {
+    "Apsildāms vadītāja sēdeklis": "Apsildāmi priekšējie sēdekļi",
+    "Apsildāms pasažiera sēdeklis": "Apsildāmi priekšējie sēdekļi",
+    "Avārijas zvans": "Ārkārtas un avārijas izsaukums (eCall)",
+    "Gaisa kondicionētājs": "Automātiskā gaisa kondicionēšanas sistēma",
+    "Durvju spoguļi - elektriski/sildāmi/nolokāmi": "Apsildāmi un automātiski pielokāmi sānu spoguļi",
+    "Priekšējie lukturi – LED": "LED priekšējie lukturi",
+    "Android Auto un Apple CarPlay - bezvadu": "Bezvadu Apple CarPlay®",
+    "Kruīza kontrole": "Kruīza kontrole ar ātruma ierobežotāju"
+  }
+}

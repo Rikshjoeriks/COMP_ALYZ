@@ -1,0 +1,45 @@
+{
+  "positives": [
+    {
+      "name": "Android Auto un Apple CarPlay - bezvadu",
+      "evidence": "Bezvadu Apple CarPlay®"
+    },
+    {
+      "name": "Android Auto un Apple CarPlay - bezvadu",
+      "evidence": "Bezvadu Android AutoTM"
+    },
+    {
+      "name": "Kruīza kontrole",
+      "evidence": "Kruīza kontrole ar ātruma ierobežotāju"
+    },
+    {
+      "name": "Stāvbremze – elektriska",
+      "evidence": "Elektroniska rokas bremze ar automātiskās stāvbremzes funkciju"
+    },
+    {
+      "name": "Priekšējie vējstikla tīrītāji - automātiski",
+      "evidence": "Automātiski stikla tīrītāji un lietus sensors"
+    },
+    {
+      "name": "Durvju spoguļi - elektriski/sildāmi/nolokāmi",
+      "evidence": "Apsildāmi un automātiski pielokāmi sānu spoguļi"
+    },
+    {
+      "name": "Priekšējie lukturi – LED",
+      "evidence": "LED priekšējie lukturi"
+    },
+    {
+      "name": "Dienas gaitas lukturi - LED",
+      "evidence": "LED dienas apgaismojuma lukturi"
+    },
+    {
+      "name": "Apsildāms vadītāja sēdeklis",
+      "evidence": "Apsildāmi un automātiski pielokāmi sānu spoguļi"
+    },
+    {
+      "name": "16\" tērauda rati",
+      "evidence": "17\" tērauda diski, Sakura"
+    }
+  ],
+  "warnings": []
+}

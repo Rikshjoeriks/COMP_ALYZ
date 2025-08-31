@@ -1,0 +1,108 @@
+Range on a single charge in EV mode (WLTP, km) Value
+Memo: Range on a single charge in EV mode (WLTP, km)
+AC charge speed 0 - 5 Kw
+AC charge speed 5 - 10 Kw
+AC charge speed 10 - 20 Kw
+DC Charging
+4X4 Full Time (4WD / AWD)
+Automatic Transmission
+mHEV
+FHEV
+PHEV
+Metallic paint as standard
+Door Mirrors - Power/Heated
+Door Mirrors - Power/Heated/Foldback
+Front Wipers - Automatic
+Glass - Tinted w Privacy Rear Side
+Heated Windshield
+Liftgate - Power
+Roof Rails
+Panorama Roof
+Daytime Running Lamps - LED
+Front Fog Lamps - LED
+Front Fog Lamps - LED Integrated
+Headlamp Control - Automatic On/Off
+Headlamp Control - Automatic On/Off & High/Low Beam
+Headlamps - LED
+Headlamps - Adaptive LED w/o Matrix or Glare Free
+Headlamps - Adaptive LED w/ Matrix or Glare Free
+A/C
+A/C - EATC 1 Zone
+A/C - EATC 2 Zone
+A/C - EATC 3 Zone
+Cabine air purifier
+Ambient Lighting - Interior w/ Multi Colour LED
+Centre Console w Armrest
+Auto - Dimming Interior Mirror
+12V in the luggage compartment
+Wireless Charging
+Multi - function Touchscreen - 6 - 7,9"
+Multi - function Touchscreen - 8 - 9,9"
+Multi - function Touchscreen - 10 - 11,9"
+Multi - function Touchscreen - 12 - "
+Branded Audio System
+Navigation Centre
+Navigation Centre - Connected
+Android Auto & Apple CarPlay
+Android Auto & Apple CarPlay - Wireless
+Smart Assistent w/ AI
+Emergency Call
+Head - Up Display
+Heated Steering Wheel
+Leather (incl. Sensico) Steering Wheel
+Digital Cluster - 8.9"
+Digital Cluster 9" - 11.9"
+Digital Cluster 12+"
+Heated Driver Seat
+Heated Passenger Seat
+Heated Rear Seats
+Lumbar Adjustment on Driver Seat Manual
+Lumbar Adjustment on Passenger Seat Manual
+Lumbar Adjustment on Driver Seat Power
+Lumbar Adjustment on Passenger Seat Power
+Power Driver Seat Adjustment
+Power Passenger Seat Adjustment
+Power Driver Seat Adjustment w/ Memory
+Power Passenger Seat Adjustment w/ Memory
+Seat Trim - Cloth/ Synthetic Leather
+Seat Trim - Alcantara/Synthetic Leather
+Seat Trim - Synthetic Leather
+Automated Parking System
+Blind Spot Monitoring
+Blind Spot Monitoring with Cross Traffic Alert
+Cruise Control
+Cruise Control - Adaptive
+Cruise Control - Adaptive Stop&Go
+Cruise Control - Adaptive Trafic Jam
+Cruise Control - Adaptive Navi - based
+Lane Centering and Overtaking assist
+Camera - Front 360° View
+Camera - Rear 180° View
+Parking Aid - Front Sensors
+Parking Aid - Rear Sensors
+AEBS w Pedestrian & Cyclist Detection
+Collision Mitigation - Post Impact (2nd Collision)
+Parking Brake - Electric
+Mechanical - Wheels/Tyres
+16" Steel Wheels
+16" Alloy Wheels
+17" Steel Wheels
+17" Alloy Wheels
+18" Steel Wheels
+18" Alloy Wheels
+19" Alloy Wheels
+Spare Wheel
+Wheel Cover
+Airbags - Knee or Center
+Airbags - Curtain
+Airbags - Side
+Alarm - Perimeter
+Keyless Start
+Keyless Entry
+Extended Warranty - 2 Years
+Extended Warranty - 3 Years
+Extended Warranty - 4 Years
+Extended Warranty - 5 Years
+Extended Warranty - 6 - Years
+Extended Warranty - 7 Years
+Extended Warranty - 10 Years

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "pvvp-app"
+version = "0.1.0"
+description = "PVVP/CSCOPIED matcher — session & config skeleton"
+authors = [{name = "You"}]
+requires-python = ">=3.10"
+dependencies = [
+"typer>=0.12",
+"pandas>=2.0",
+"pydantic>=2.6",
+"pyyaml>=6.0",
+]
+
+
+[project.scripts]
+pvvp = "pvvp.cli:app"
+
+
+[tool.setuptools.packages]
+find = { include = ["pvvp"] }
