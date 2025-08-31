@@ -19,3 +19,10 @@ __pycache__/
 *.key
 pvvp/sessions/
 pvvp/exports/
+.env
+.venv/
+__pycache__/
+*.pem
+*.key
+pvvp/sessions/
+pvvp/exports/
