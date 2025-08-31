@@ -108,7 +108,7 @@ def write_csv_from_master(rows: List[Dict[str, Any]], out_csv_path: str) -> Dict
     os.makedirs(os.path.dirname(out_csv_path), exist_ok=True)
 
     # Write exact columns & order
-    fieldnames = ["nr_code", "variable_name_lv", "is_tt", "mentioned_YN", "evidence"]
+    fieldnames = ["nr_code", "variable_name_lv", "is_tt", "mentioned_YN", "maybe_flag", "evidence"]
 
     with open(out_csv_path, 'w', encoding='utf-8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
@@ -121,19 +121,21 @@ def write_csv_from_master(rows: List[Dict[str, Any]], out_csv_path: str) -> Dict
     # Compute counts for sanity
     num_tt = sum(1 for r in rows if str(r.get("is_tt", "")).upper() == "Y")
     num_y = sum(1 for r in rows if str(r.get("mentioned_YN", "")).upper() == "Y")
+    num_maybe = sum(1 for r in rows if str(r.get("maybe_flag", "")).upper() == "Y")
 
-    return {"rows_total": len(rows), "num_tt": num_tt, "num_y": num_y}
+    return {"rows_total": len(rows), "num_tt": num_tt, "num_y": num_y, "num_maybe": num_maybe}
 
 
 def write_positives_jsonl(merge_result: Dict[str, Any], out_jsonl_path: str) -> int:
     mentioned_vars = merge_result.get("mentioned_vars", []) or []
     evidence_map = merge_result.get("evidence", {}) or {}
+    reason_map = merge_result.get("evidence_reason", {}) or {}
 
-    # Overwrite file deterministically
     with open(out_jsonl_path, 'w', encoding='utf-8', newline='') as f:
         for name in mentioned_vars:
             snippet = evidence_map.get(name, "")
-            line = json.dumps({"var": name, "evidence": snippet}, ensure_ascii=False)
+            reason = reason_map.get(name, "")
+            line = json.dumps({"var": name, "evidence": snippet, "reason": reason}, ensure_ascii=False)
             f.write(line + "\n")
 
     return len(mentioned_vars)
@@ -233,13 +235,17 @@ def main(argv: List[str]) -> int:
     try:
         num_tt = counts["num_tt"]
         num_y = counts["num_y"]
-        if positives_count != num_y:
+        num_maybe = counts.get("num_maybe", 0)
+        csv_pos = num_y + num_maybe
+        if positives_count != csv_pos:
             warn(debug_txt, (
-                "WARNING: Positives count from merge_result ({} ) != Y count in CSV ({}). "
+                "WARNING: Positives count from merge_result ({} ) != Y+Maybe count in CSV ({}). "
                 "Investigate upstream alignment/merging."
-            ).format(positives_count, num_y))
-        # Always record some helpful stats
-        warn(debug_txt, f"INFO: Rows total: {counts['rows_total']}, is_tt==Y: {num_tt}, mentioned_YN==Y: {num_y}, positives: {positives_count}")
+            ).format(positives_count, csv_pos))
+        warn(
+            debug_txt,
+            f"INFO: Rows total: {counts['rows_total']}, is_tt==Y: {num_tt}, mentioned_YN==Y: {num_y}, maybe_flag==Y: {num_maybe}, positives: {positives_count}",
+        )
     except Exception as e:
         # Never fail the export because a warning couldn't be written
         warn(debug_txt, f"WARNING: Failed to write sanity stats: {e}")

@@ -35,15 +35,16 @@ def load_allow_list(path: str) -> List[str]:
                 names.append(name)
     return names
 
-def load_merge_result(path: str) -> Tuple[List[str], Dict[str, str]]:
+def load_merge_result(path: str) -> Tuple[List[str], Dict[str, str], Dict[str, str]]:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     mentioned = data.get("mentioned_vars", []) or []
     evidence = data.get("evidence", {}) or {}
-    # normalize keys (strip whitespace just in case)
+    reasons = data.get("evidence_reason", {}) or {}
     mentioned = [m.strip() for m in mentioned]
     evidence = { (k.strip()): (v if isinstance(v, str) else "") for k, v in evidence.items() }
-    return mentioned, evidence
+    reasons = { (k.strip()): (v if isinstance(v, str) else "") for k, v in reasons.items() }
+    return mentioned, evidence, reasons
 
 def load_master_csv(path: str) -> List[dict]:
     with open(path, "r", encoding="utf-8-sig", newline="") as f:
@@ -92,7 +93,7 @@ def main():
     try:
         allow_list = load_allow_list(allow_list_path)
         allow_set = set(allow_list)
-        mentioned_vars, evidence_map = load_merge_result(merge_result_path)
+        mentioned_vars, evidence_map, reason_map = load_merge_result(merge_result_path)
         mentioned_set = set(mentioned_vars)
         master_rows = load_master_csv(master_csv_path)
     except Exception as e:
@@ -136,6 +137,7 @@ def main():
         if is_tt == "Y":
             tt_rows += 1
             mentioned_YN = "N"
+            maybe_flag = "N"
             ev = ""
         else:
             feature_rows += 1
@@ -144,23 +146,32 @@ def main():
                 drift_missing.append(var_name)
 
             if var_name in mentioned_set:
+                reason = reason_map.get(var_name, "")
+                maybe_flag = "Y" if reason.startswith("fuzzy") else "N"
                 mentioned_YN = "Y"
                 positives_after_merge += 1
                 ev = evidence_map.get(var_name, "") or ""
             else:
                 mentioned_YN = "N"
+                maybe_flag = "N"
                 ev = ""
 
             # final_decisions: only non-TT names that are in the allow-list; keys must be exact allow-list strings
             if var_name in allow_set:
-                final_decisions[var_name] = mentioned_YN
+                if mentioned_YN == "Y" and maybe_flag == "Y":
+                    final_decisions[var_name] = "M"
+                elif mentioned_YN == "Y":
+                    final_decisions[var_name] = "Y"
+                else:
+                    final_decisions[var_name] = "N"
 
         aligned_obj = {
-            "Nr Code": nr_code,
-            "Variable Name": var_name,
+            "nr_code": nr_code,
+            "variable_name_lv": var_name,
             "is_tt": is_tt,
             "mentioned_YN": mentioned_YN,
-            "evidence": ev
+            "maybe_flag": maybe_flag,
+            "evidence": ev,
         }
         aligned_lines.append(json.dumps(aligned_obj, ensure_ascii=False))
 
