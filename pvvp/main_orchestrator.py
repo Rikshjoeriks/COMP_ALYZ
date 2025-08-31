@@ -50,8 +50,11 @@ from datetime import datetime, UTC
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import subprocess
+import importlib.util
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 # ---------- Configuration of lego module names ----------
 LEGO_MODULES = {
@@ -88,6 +91,10 @@ def write_text(p: Path, s: str) -> None:
 def append_line(p: Path, s: str) -> None:
     with p.open("a", encoding="utf-8") as f:
         f.write(s.rstrip("\n") + "\n")
+
+
+def module_exists(modname: str) -> bool:
+    return importlib.util.find_spec(modname) is not None
 
 
 def run_module(module: str, *args: str, cwd: Optional[Path] = None) -> Tuple[int, str, str]:
@@ -211,6 +218,11 @@ class Orchestrator:
     # ----- Lego runners -----
     def run_lego(self, key: str, *args: str) -> Tuple[bool, str]:
         module = LEGO_MODULES[key]
+        if not module_exists(module):
+            msg = f"[orchestrator] SKIP {module} (module not found)"
+            print(msg)
+            append_line(self.summary_path, f"{now_utc_ts()} | LEGO {key} skipped")
+            return True, msg
         rc, out, err = run_module(module, *args, "--project-root", str(self.project_root))
         if out:
             print(out, end="")
