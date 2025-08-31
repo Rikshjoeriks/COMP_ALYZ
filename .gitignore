@@ -35,3 +35,7 @@ pvvp/sessions/
 pvvp/exports/
 .env
 .env
+
+# additional secrets
+*.env
+/secrets/
