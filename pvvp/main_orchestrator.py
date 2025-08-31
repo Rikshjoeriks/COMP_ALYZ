@@ -213,7 +213,7 @@ class Orchestrator:
         script_path = (self.project_root / script_rel).resolve()
         if not script_path.exists():
             return False, f"lego script missing: {script_path}"
-        rc, out, err = run_py(script_path, *args)
+        rc, out, err = run_py(script_path, *args, "--project-root", str(self.project_root))
         ok = rc == 0
         log = out.strip() + ("\n" + err.strip() if err.strip() else "")
         append_line(self.summary_path, f"{now_utc_ts()} | LEGO {key} rc={rc}")

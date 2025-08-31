@@ -25,6 +25,9 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
+import shutil
+from temp_utils import make_temp_root, atomic_publish
 
 def write_debug(debug_path: str, message: str) -> None:
     try:
@@ -111,76 +114,79 @@ def chunk_text(text: str, min_len: int, target_len: int, max_len: int):
 
     return chunks
 
-def main():
+
+
+def run(session: str, project_root: Path, min_len: int, target_len: int, max_len: int, workdir: Path | None, keep_workdir: bool, readonly: bool) -> int:
+    session_dir = project_root / "sessions" / session
+    input_src = session_dir / "text_normalized.txt"
+    output_dest = session_dir / "chunks.jsonl"
+    debug_dest = session_dir / "chunker_debug.txt"
+
+    temp_root = Path(workdir).resolve() if workdir else make_temp_root()
+    log_path = temp_root / "logs" / "L04_chunker.log"
+    log_path.write_text(f"Temp workdir: {temp_root}\n", encoding="utf-8")
+    print(f"Temp workdir: {temp_root}")
+
+    try:
+        tmp_input = temp_root / "input" / "text_normalized.txt"
+        shutil.copy2(input_src, tmp_input)
+        if readonly:
+            try:
+                os.chmod(tmp_input, 0o444)
+            except Exception:
+                pass
+
+        if min_len <= 0 or max_len <= 0 or target_len <= 0:
+            raise ValueError("Invalid lengths: --min, --target, --max must be >0")
+        if not (min_len <= target_len <= max_len):
+            raise ValueError(f"Invalid relation among lengths: require --min <= --target <= --max (got min={min_len}, target={target_len}, max={max_len}).")
+
+        with open(tmp_input, "r", encoding="utf-8") as f:
+            text = f.read()
+
+        chunks = chunk_text(text, min_len=min_len, target_len=target_len, max_len=max_len)
+        tmp_out = temp_root / "out" / "chunks.jsonl.partial"
+        with open(tmp_out, "w", encoding="utf-8", newline="\n") as out:
+            for entry in chunks:
+                line = json.dumps({"id": entry["id"], "start": entry["start"], "end": entry["end"], "text": entry["text"]}, ensure_ascii=False, separators=(",", ":"), sort_keys=False)
+                out.write(line + "\n")
+        atomic_publish(tmp_out, output_dest)
+        if debug_dest.exists():
+            try:
+                debug_dest.unlink()
+            except Exception:
+                pass
+        if not keep_workdir:
+            shutil.rmtree(temp_root, ignore_errors=True)
+        return 0
+    except Exception as e:
+        tmp_debug = temp_root / "out" / "chunker_debug.txt.partial"
+        write_debug(str(tmp_debug), f"{e}")
+        try:
+            atomic_publish(tmp_debug, debug_dest)
+        except Exception:
+            pass
+        print(f"Workdir preserved at: {temp_root}", file=sys.stderr)
+        return 2
+
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="L04.Chunker — size-based, newline-friendly")
     parser.add_argument("--session", required=True, help="Car ID / session folder name (e.g., MCAFHEV)")
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--target", type=int, default=1800, help="Target chunk length (default 1800)")
     parser.add_argument("--min", dest="min_len", type=int, default=800, help="Minimum chunk length (default 800)")
     parser.add_argument("--max", dest="max_len", type=int, default=2500, help="Maximum chunk length (default 2500)")
+    parser.add_argument("--workdir", help="Use existing workdir instead of creating temp")
+    parser.add_argument("--keep-workdir", action="store_true", help="Preserve temp workdir for debugging")
+    parser.add_argument("--readonly", action="store_true", help="Disallow writes outside temp until publish")
     args = parser.parse_args()
 
-    # Paths
-    session_dir = os.path.join(args.project_root, "sessions", args.session)
-    input_path = os.path.join(session_dir, "text_normalized.txt")
-    output_path = os.path.join(session_dir, "chunks.jsonl")
-    debug_path = os.path.join(session_dir, "chunker_debug.txt")
+    project_root = Path(args.project_root).resolve()
+    workdir = Path(args.workdir).resolve() if args.workdir else None
+    rc = run(args.session, project_root, args.min_len, args.target, args.max_len, workdir, args.keep_workdir, args.readonly)
+    sys.exit(rc)
 
-    # Validate input existence
-    if not os.path.isfile(input_path):
-        write_debug(debug_path, f"Missing input file: {input_path}")
-        sys.exit(2)
-
-    # Validate length parameters
-    min_len = args.min_len
-    target_len = args.target
-    max_len = args.max_len
-
-    if min_len <= 0 or max_len <= 0 or target_len <= 0:
-        write_debug(debug_path, "Invalid lengths: all of --min, --target, --max must be positive integers.")
-        sys.exit(2)
-
-    if not (min_len <= target_len <= max_len):
-        # Strict but helpful: fail fast with a clear message.
-        write_debug(
-            debug_path,
-            f"Invalid relation among lengths: require --min <= --target <= --max (got min={min_len}, target={target_len}, max={max_len})."
-        )
-        sys.exit(2)
-
-    # Read input (UTF-8). text_normalized.txt is expected to already use \n line endings.
-    try:
-        with open(input_path, "r", encoding="utf-8") as f:
-            text = f.read()
-    except Exception as e:
-        write_debug(debug_path, f"Failed to read input: {e}")
-        sys.exit(2)
-
-    # Chunking (single pass over text, O(n))
-    chunks = chunk_text(text, min_len=min_len, target_len=target_len, max_len=max_len)
-
-    # Idempotently write output (overwrite)
-    try:
-        with open(output_path, "w", encoding="utf-8", newline="\n") as out:
-            for entry in chunks:
-                # Deterministic key order
-                line = json.dumps(
-                    {"id": entry["id"], "start": entry["start"], "end": entry["end"], "text": entry["text"]},
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                    sort_keys=False,
-                )
-                out.write(line + "\n")
-    except Exception as e:
-        write_debug(debug_path, f"Failed to write output: {e}")
-        sys.exit(2)
-
-    # Success: ensure no stale debug file claims an error (optional—don’t fail if we can’t remove).
-    try:
-        if os.path.isfile(debug_path):
-            os.remove(debug_path)
-    except Exception:
-        pass
 
 if __name__ == "__main__":
     main()
