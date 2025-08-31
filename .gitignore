@@ -34,3 +34,4 @@ __pycache__/
 pvvp/sessions/
 pvvp/exports/
 .env
+.env
