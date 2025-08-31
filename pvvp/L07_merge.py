@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Set, Any
 
 from pvvp.temp_utils import make_temp_root, atomic_publish
-from pvvp.textnorm import norm_basic
+from pvvp.textnorm import norm_basic, norm_lv
 
 
 # ---------------------------------------------------------------------------
@@ -106,6 +106,84 @@ def load_alias_map(path: Path) -> Dict[str, str]:
     return out
 
 
+LV_HINTS_RAW = {
+    "gaisa kondicionētājs": ["kondicionieris", "klimata kontrole", "a/c"],
+    "apsildāms stūres rats": ["stūres apsilde", "stūre ar apsildi"],
+    "bezatslēgas piekļuve": ["keyless", "kessy"],
+    "avārijas zvans": ["ecall", "ārkārtas zvans"],
+    "12v bagāžas nodalījumā": ["12v rozete bagāžas nodalījumā", "12v ligzda bagāžā"],
+    "durvju spoguļi": ["sānu spoguļi", "sānu atpakaļskata spoguļi"],
+    "stāv bremze": ["stāvbremze", "elektroniskā stāvbremze", "autohold"],
+    "navigācijas centrs": ["navigācijas sistēma", "navigācija"],
+}
+
+LV_HINTS = {norm_lv(k): [norm_lv(v) for v in vs] for k, vs in LV_HINTS_RAW.items()}
+
+
+def build_lv_master_index(path: Path) -> tuple[list[dict], dict[str, list[str]]]:
+    master: list[dict] = []
+    with path.open("r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            nr = row.get("Nr Code") or row.get("nr_code") or row.get("NR Code")
+            name_lv = row.get("Variable Name LV") or row.get("variable_name_lv")
+            is_tt = (row.get("Section TT") or row.get("is_tt") or "").strip().upper() in (
+                "Y",
+                "YES",
+                "TRUE",
+                "1",
+            )
+            if not nr or is_tt:
+                continue
+            master.append({"nr": nr.strip(), "name_lv": name_lv or ""})
+
+    by_norm: dict[str, list[str]] = {}
+    for r in master:
+        key = norm_lv(r["name_lv"])
+        by_norm.setdefault(key, []).append(r["nr"])
+    return master, by_norm
+
+
+def map_lv_mention(mention: str, master: list[dict], by_norm: dict[str, list[str]]) -> tuple[str | None, str | None]:
+    m = norm_lv(mention)
+    if not m:
+        return None, None
+    m_aug = m
+    for k, hints in LV_HINTS.items():
+        if k in m:
+            m_aug = " ".join([m_aug] + hints)
+    candidates: list[tuple[str, str]] = []
+    if m in by_norm:
+        for nr in by_norm[m]:
+            candidates.append((nr, "eq"))
+    if not candidates:
+        for r in master:
+            rn = norm_lv(r["name_lv"])
+            if rn and (rn in m_aug or m_aug in rn):
+                candidates.append((r["nr"], "contains"))
+    if not candidates:
+        try:
+            from rapidfuzz.fuzz import token_set_ratio, partial_ratio  # type: ignore
+
+            best: tuple[str, str, float] | None = None
+            for r in master:
+                rn = norm_lv(r["name_lv"])
+                score = max(token_set_ratio(m_aug, rn), partial_ratio(m_aug, rn))
+                if score >= 82:
+                    tag = "fuzzy_strong" if score >= 90 else "fuzzy_weak"
+                    if best is None or score > best[2]:
+                        best = (r["nr"], tag, score)
+            if best:
+                candidates.append((best[0], best[1]))
+        except Exception:
+            pass
+    if candidates:
+        priority = {"eq": 0, "contains": 1, "fuzzy_strong": 2, "fuzzy_weak": 3}
+        candidates.sort(key=lambda x: priority.get(x[1], 99))
+        return candidates[0][0], candidates[0][1]
+    return None, None
+
+
 def evidence_passes(ev: str, txt: str) -> Tuple[bool, str]:
     if not ev:
         return False, "empty"
@@ -181,6 +259,9 @@ def main(argv: List[str] | None = None) -> int:
         name_to_nr, nr_to_name = load_master_map(master_csv_path)
         alias_map = load_alias_map(alias_path)
         alias_map.update(name_to_nr)
+        master_lv, by_norm = build_lv_master_index(master_csv_path)
+        if args.diag_merge:
+            print(f"[diag] master rows: {len(master_lv)}")
 
         allow_nr_list: List[str] = []
         for item in allow_raw:
@@ -215,6 +296,8 @@ def main(argv: List[str] | None = None) -> int:
         total_mentions = 0
         drops: List[Dict[str, Any]] = []
         unresolved: List[Dict[str, Any]] = []
+        map_counts = {"eq": 0, "contains": 0, "fuzzy_strong": 0, "fuzzy_weak": 0, "unresolved": 0}
+        map_samples: List[Dict[str, str]] = []
 
         hits: List[Dict[str, Any]] = []
         best_by_nr: Dict[str, Dict[str, Any]] = {}
@@ -241,12 +324,20 @@ def main(argv: List[str] | None = None) -> int:
                 total_mentions += 1
                 raw = str(raw_var).strip()
                 nr: str | None = None
+                map_reason: str | None = None
                 if NR_RE.match(raw):
                     nr = raw.upper()
                 else:
                     nr = alias_map.get(norm_basic(raw).lower())
                 if not nr:
+                    nr, map_reason = map_lv_mention(raw, master_lv, by_norm)
+                    if nr and map_reason in map_counts:
+                        map_counts[map_reason] += 1
+                        if len(map_samples) < 5:
+                            map_samples.append({"mention": raw, "nr": nr, "reason": map_reason})
+                if not nr:
                     unresolved.append({"mention": raw})
+                    map_counts["unresolved"] += 1
                     continue
                 ev = ev_map.get(raw_var)
                 ev_str = ev if isinstance(ev, str) else ""
@@ -297,6 +388,8 @@ def main(argv: List[str] | None = None) -> int:
             "drops": drops,
             "unresolved": unresolved,
             "warnings": warnings,
+            "map_samples": map_samples,
+            "mapping_stats": map_counts,
         }
         merge_debug = {
             "found_mapper_files": [p.name for p in mapper_files],
@@ -321,6 +414,10 @@ def main(argv: List[str] | None = None) -> int:
         atomic_publish(out_dbg_tmp, session_dir / "merge_debug.json")
 
         if args.diag_merge:
+            print(f"[diag] mapper mentions: {total_mentions}")
+            print(f"[diag] mapping counts: {map_counts}")
+            print(f"[diag] map samples: {map_samples[:5]}")
+            print(f"[diag] unresolved samples: {unresolved[:5]}")
             print(f"[diag] processed_chunks: {processed_chunk_ids}")
             print(f"[diag] accepted: {len(order)}; drops: {len(drops)}; unresolved: {len(unresolved)}")
         return 0
