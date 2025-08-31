@@ -26,9 +26,9 @@ Outputs:
     nr_code,variable_name_lv,is_tt,mentioned_YN,evidence
   Order exactly as master_aligned.jsonl (which mirrors pvvp_master.csv)
 
-- sessions/<car_id>/positives_explanations.jsonl
+ - sessions/<car_id>/positives_explanations.jsonl
   One line per positive from merge_result.json (first-win order):
-    {"var": "<exact PVVP name>", "evidence": "<literal LV snippet or empty>"}
+    {"nr": "<NR code>", "evidence": "<literal LV snippet or empty>", "reason": "<evidence_reason>"}
 
 - sessions/<car_id>/summary.txt (append-only)
   Appends one line like:
@@ -132,10 +132,10 @@ def write_positives_jsonl(merge_result: Dict[str, Any], out_jsonl_path: str) -> 
     reason_map = merge_result.get("evidence_reason", {}) or {}
 
     with open(out_jsonl_path, 'w', encoding='utf-8', newline='') as f:
-        for name in mentioned_vars:
-            snippet = evidence_map.get(name, "")
-            reason = reason_map.get(name, "")
-            line = json.dumps({"var": name, "evidence": snippet, "reason": reason}, ensure_ascii=False)
+        for nr in mentioned_vars:
+            snippet = evidence_map.get(nr, "")
+            reason = reason_map.get(nr, "")
+            line = json.dumps({"nr": nr, "evidence": snippet, "reason": reason}, ensure_ascii=False)
             f.write(line + "\n")
 
     return len(mentioned_vars)

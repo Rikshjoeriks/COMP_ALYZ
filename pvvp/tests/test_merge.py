@@ -1,10 +1,11 @@
+import csv
 import json
 from pathlib import Path
 
 from pvvp import L07_merge
 
 
-def make_session(tmp_path: Path) -> Path:
+def make_session(tmp_path: Path) -> tuple[Path, list[str]]:
     session = "TEST"
     session_dir = tmp_path / "sessions" / session
     session_dir.mkdir(parents=True)
@@ -29,9 +30,17 @@ def make_session(tmp_path: Path) -> Path:
         "Apsildāms stūres rats",
         "Durvju spoguļi - elektriski/sildāmi/salokāmi",
     ]
+    allow_nrs = []
+    with (session_dir / "pvvp_master.csv").open("w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Nr Code", "Variable Name", "Section TT"])
+        for i, name in enumerate(allow_names, start=1):
+            nr = f"NR{i}"
+            allow_nrs.append(nr)
+            writer.writerow([nr, name, ""])
     with (session_dir / f"LV_{session}PVVP.txt").open("w", encoding="utf-8") as f:
-        for name in allow_names:
-            f.write(name + "\n")
+        for nr in allow_nrs:
+            f.write(nr + "\n")
     evidence = {
         "Priekšējie lukturi – LED": "LED priekšējie un aizmugurējie lukturi",
         "Priekšējie lukturi – adaptīvie LED ar Matrix vai Glare Free": "Adaptīvie LED priekšējie lukturi ar Matrix un Glare Free",
@@ -43,11 +52,11 @@ def make_session(tmp_path: Path) -> Path:
     }
     with (session_dir / "mapper_chunk_1.json").open("w", encoding="utf-8") as f:
         json.dump({"chunk_id": 1, "mentioned_vars": list(evidence.keys()), "evidence": evidence}, f, ensure_ascii=False)
-    return session_dir
+    return session_dir, allow_nrs
 
 
 def test_merge_produces_mentions(tmp_path):
-    session_dir = make_session(tmp_path)
+    session_dir, allow_nrs = make_session(tmp_path)
     session = session_dir.name
     root = tmp_path
     exit_code = L07_merge.main(["--session", session, "--project-root", str(root)])
@@ -55,13 +64,5 @@ def test_merge_produces_mentions(tmp_path):
     result_path = session_dir / "merge_result.json"
     with result_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
-    for name in [
-        "Priekšējie lukturi – LED",
-        "Priekšējie lukturi – adaptīvie LED ar Matrix vai Glare Free",
-        "Kruīza kontrole – adaptīvā",
-        "Stāvvietas palīgs – priekšējie sensori",
-        "Stāvvietas palīgs – aizmugurējie sensori",
-        "Apsildāms stūres rats",
-        "Durvju spoguļi - elektriski/sildāmi/salokāmi",
-    ]:
-        assert name in data["mentioned_vars"]
+    for nr in allow_nrs:
+        assert nr in data["mentioned_vars"]

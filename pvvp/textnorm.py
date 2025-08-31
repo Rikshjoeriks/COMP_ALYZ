@@ -14,4 +14,4 @@ def norm_basic(s: str) -> str:
     s = s.translate(str.maketrans(DASHES))
     s = s.replace("\u00A0", " ").replace("\u2007", " ").replace("\u202F", " ")
     s = re.sub(r"[ \t]+", " ", s)
-    return s
+    return s.strip()
