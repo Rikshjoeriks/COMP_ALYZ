@@ -58,3 +58,29 @@ RUN: PARTIAL (chunks processed 0/3; positives 0; capped=false)
 2025-08-31T19:02:57Z | FAIL chunker
 2025-08-31T19:02:57Z | BUDGET allowed_chunks=[]
 RUN: PARTIAL (chunks processed 0/3; positives 0; capped=false)
+2025-08-31T19:13:15Z | RUN START session=EV
+2025-08-31T19:13:15Z | INPUT saved bytes=5437
+2025-08-31T19:13:15Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-31T19:13:15Z | ALLOW-LIST derived count=101
+2025-08-31T19:13:15Z | LEGO normalize rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_9d27d51o
+2025-08-31T19:13:15Z | LEGO chunker rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_ihnt72n7
+BUDGET: OK (est €1.06 / cap €2.00)
+2025-08-31T19:13:15Z | LEGO budget rc=0
+2025-08-31T19:13:15Z | BUDGET allowed_chunks=[1, 2, 3]
+2025-08-31T19:13:16Z | LEGO mapper rc=1
+Traceback (most recent call last): File "<frozen runpy>", line 198, in _run_module_as_main File "<frozen runpy>", line 88, in _run_code File "C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\L06_mapper.py", line 492, in <module> sys.exit(main()) ~~~~^^ File "C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\L06_mapper.py", line 342, in main args = parser.parse_args() File "C:\Users\vanag\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 1904, in parse_args args, argv = self.parse_known_args(args, namespace) ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^ File "C:\Users\vanag\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 1914, in parse_known_args return self._parse_known_args2(args, namespace, intermixed=False) ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+2025-08-31T19:13:16Z | LEGO mapper rc=1
+Traceback (most recent call last): File "<frozen runpy>", line 198, in _run_module_as_main File "<frozen runpy>", line 88, in _run_code File "C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\L06_mapper.py", line 492, in <module> sys.exit(main()) ~~~~^^ File "C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\L06_mapper.py", line 342, in main args = parser.parse_args() File "C:\Users\vanag\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 1904, in parse_args args, argv = self.parse_known_args(args, namespace) ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^ File "C:\Users\vanag\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 1914, in parse_known_args return self._parse_known_args2(args, namespace, intermixed=False) ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+2025-08-31T19:13:17Z | LEGO mapper rc=1
+Traceback (most recent call last): File "<frozen runpy>", line 198, in _run_module_as_main File "<frozen runpy>", line 88, in _run_code File "C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\L06_mapper.py", line 492, in <module> sys.exit(main()) ~~~~^^ File "C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\L06_mapper.py", line 342, in main args = parser.parse_args() File "C:\Users\vanag\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 1904, in parse_args args, argv = self.parse_known_args(args, namespace) ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^ File "C:\Users\vanag\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 1914, in parse_known_args return self._parse_known_args2(args, namespace, intermixed=False) ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+2025-08-31T19:13:17Z | LEGO merge rc=0
+2025-08-31T19:13:17Z | LEGO validate rc=0
+EXPORT: detections_EV.csv (rows 114, positives 0)
+2025-08-31T19:13:17Z | LEGO export_csv rc=0
+2025-08-31T19:13:17Z | LEGO export_positives rc=1
+C:\Users\vanag\Documents\INCHCAPE\pvvp_app\.venv\Scripts\python.exe: No module named pvvp.L09_export_positives
+2025-08-31T19:13:17Z | LEGO summary_finalize rc=1
+C:\Users\vanag\Documents\INCHCAPE\pvvp_app\.venv\Scripts\python.exe: No module named pvvp.L13_summary_finalize
+RUN: PARTIAL (chunks processed 3/3; positives 0; capped=false)
