@@ -127,18 +127,29 @@ def write_csv_from_master(rows: List[Dict[str, Any]], out_csv_path: str) -> Dict
 
 
 def write_positives_jsonl(merge_result: Dict[str, Any], out_jsonl_path: str) -> int:
-    mentioned_vars = merge_result.get("mentioned_vars", []) or []
-    evidence_map = merge_result.get("evidence", {}) or {}
-    reason_map = merge_result.get("evidence_reason", {}) or {}
+    if "mentioned_vars" in merge_result:
+        items = [
+            (nr, {
+                "evidence": merge_result.get("evidence", {}).get(nr, ""),
+                "reason": merge_result.get("evidence_reason", {}).get(nr, ""),
+            })
+            for nr in merge_result.get("mentioned_vars", [])
+        ]
+    else:
+        items = [
+            (nr, {
+                "evidence": (v.get("evidence", "") if isinstance(v, dict) else ""),
+                "reason": (v.get("evidence_reason", "") if isinstance(v, dict) else ""),
+            })
+            for nr, v in merge_result.items()
+        ]
 
     with open(out_jsonl_path, 'w', encoding='utf-8', newline='') as f:
-        for nr in mentioned_vars:
-            snippet = evidence_map.get(nr, "")
-            reason = reason_map.get(nr, "")
-            line = json.dumps({"nr": nr, "evidence": snippet, "reason": reason}, ensure_ascii=False)
+        for nr, meta in items:
+            line = json.dumps({"nr": nr, "evidence": meta["evidence"], "reason": meta["reason"]}, ensure_ascii=False)
             f.write(line + "\n")
 
-    return len(mentioned_vars)
+    return len(items)
 
 
 def append_summary_line(summary_path: str, car_id: str, rows_total: int, positives_count: int) -> None:

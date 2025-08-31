@@ -66,4 +66,5 @@ def test_merge_produces_mentions(tmp_path):
     with result_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     for nr in allow_nrs:
-        assert nr in data["mentioned_vars"]
+        assert nr in data
+        assert data[nr]["evidence"]

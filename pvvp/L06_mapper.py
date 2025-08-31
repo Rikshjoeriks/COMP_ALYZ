@@ -209,6 +209,51 @@ def load_allow_list(path: str) -> List[str]:
     # Preserve order but also expose a set for filtering
     return lines
 
+
+def load_master_map(path: str) -> tuple[Dict[str, str], Dict[str, str], int]:
+    """Return (name->NR mapping, header_info, non_tt_count)."""
+    import csv
+
+    NR_COLS = ["nr_code", "nr code", "nr"]
+    NAME_COLS = [
+        "variable name lv",
+        "variable name",
+        "variable name lv",
+        "variable name",
+    ]
+    TT_COLS = ["is_tt", "section tt", "tt"]
+
+    mapping: Dict[str, str] = {}
+    header_info: Dict[str, str] = {}
+    non_tt_count = 0
+
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = {c.lower(): c for c in reader.fieldnames or []}
+
+        def _find(aliases: List[str]) -> str | None:
+            for a in aliases:
+                if a in fields:
+                    return fields[a]
+            return None
+
+        nr_col = _find(NR_COLS)
+        name_col = _find(NAME_COLS)
+        tt_col = _find(TT_COLS)
+        header_info = {"nr": nr_col, "name": name_col, "tt": tt_col}
+
+        for row in reader:
+            nr = (row.get(nr_col or "") or "").strip()
+            name = (row.get(name_col or "") or "").strip()
+            val_tt = (row.get(tt_col or "") or "").strip().upper() if tt_col else ""
+            is_tt = val_tt in {"Y", "YES", "TRUE", "1"}
+            if nr and name:
+                if not is_tt:
+                    mapping[name] = nr
+                    non_tt_count += 1
+
+    return mapping, header_info, non_tt_count
+
 def load_chunks_jsonl(path: str) -> List[Dict[str, Any]]:
     chunks: List[Dict[str, Any]] = []
     with open(path, "r", encoding="utf-8") as f:
@@ -385,6 +430,31 @@ def normalize_results_against_allowlist(
         seen.add(nr)
     return out
 
+
+def normalize_results_against_allowlist_legacy(
+    raw_obj: Any, allow_ordered: List[str], evidence_max_chars: int
+) -> List[Dict[str, str]]:
+    allow_set = set(allow_ordered)
+    if not isinstance(raw_obj, dict):
+        return []
+    arr = raw_obj.get("mentioned_vars")
+    ev_map = raw_obj.get("evidence") or {}
+    if not isinstance(arr, list) or not isinstance(ev_map, dict):
+        return []
+    out: List[Dict[str, str]] = []
+    seen: Set[str] = set()
+    for name in arr:
+        name = str(name).strip()
+        if name not in allow_set or name in seen:
+            continue
+        match = ev_map.get(name, "")
+        match = "" if match is None else str(match)
+        if evidence_max_chars >= 0:
+            match = match[:evidence_max_chars]
+        out.append({"nr": name, "verdict": "Jā", "match": match})
+        seen.add(name)
+    return out
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="L06 Mapper", allow_abbrev=False, add_help=True)
     # L06-specific args (KEEP existing)
@@ -527,9 +597,42 @@ def run(
                 except Exception:
                     pass
 
-        allow_list = load_allow_list(str(tmp_allow))
-        if not allow_list:
+        allow_raw = load_allow_list(str(tmp_allow))
+        if not allow_raw:
             raise ValueError("Allow-list is empty.")
+
+        master_path = session_dir / "pvvp_master.csv"
+        name_to_nr, header_info, non_tt_count = load_master_map(str(master_path))
+        if diag:
+            print(f"[L06] master headers: {header_info}; non_tt_count={non_tt_count}")
+
+        allow_pairs: List[Tuple[str, str]] = []
+        for item in allow_raw:
+            nr = ""
+            if re.match(r"^NR\d+$", item, re.I):
+                nr = item.upper()
+                name = next((n for n, v in name_to_nr.items() if v == nr), "")
+            else:
+                nr = name_to_nr.get(item, "")
+                name = item
+            if nr:
+                allow_pairs.append((nr, name))
+
+        use_legacy = False
+        if not allow_pairs:
+            use_legacy = True
+            if diag:
+                print("[L06] Warning: no NR-coded records found; falling back to legacy allow-list")
+            pvvparr_json = json.dumps(allow_raw, ensure_ascii=False, indent=0)
+            allow_order = allow_raw
+        else:
+            pvvparr_json = json.dumps(
+                [{"nr": nr, "name": name} for nr, name in allow_pairs],
+                ensure_ascii=False,
+                indent=0,
+            )
+            allow_order = [nr for nr, _ in allow_pairs]
+
         cfg_dir = project_root / "config"
         preset = load_or_create_preset(str(cfg_dir))
         sys_prompt, user_template = ensure_prompts(
@@ -538,7 +641,6 @@ def run(
         chunks = load_chunks_jsonl(str(tmp_chunks))
         budget_obj = read_json(str(tmp_budget))
         allowed_set = derive_allowed_set(budget_obj)
-        pvvparr_json = json.dumps(allow_list, ensure_ascii=False, indent=0)
 
         processed: List[Dict[str, Any]] = []
         tmp_all = temp_root / "out" / "mapper_all.json.partial"
@@ -617,9 +719,14 @@ def run(
                         pass
                 continue
 
-            normalized = normalize_results_against_allowlist(
-                parsed, allow_list, int(preset.get("evidence_max_chars", 120))
-            )
+            if use_legacy:
+                normalized = normalize_results_against_allowlist_legacy(
+                    parsed, allow_order, int(preset.get("evidence_max_chars", 120))
+                )
+            else:
+                normalized = normalize_results_against_allowlist(
+                    parsed, allow_order, int(preset.get("evidence_max_chars", 120))
+                )
             result_obj = {
                 "chunk_id": cid,
                 "results": normalized,
