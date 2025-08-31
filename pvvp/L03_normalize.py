@@ -24,7 +24,9 @@ import traceback
 import unicodedata
 import re
 from typing import Iterable
-import subprocess
+from pathlib import Path
+import shutil
+from temp_utils import make_temp_root, atomic_publish
 
 # --- regex precompilations ---
 # collapse runs of spaces/tabs (NOT newlines)
@@ -140,72 +142,79 @@ def _write_text(path: str, content: str) -> None:
     with open(path, "w", encoding="utf-8", newline="") as f:
         f.write(content)
 
-def run(session_id: str) -> int:
-    base_dir = os.path.join("pvvp", "sessions", session_id)  # <-- change "program" to "pvvp"
-    input_path = os.path.join(base_dir, "input_raw.txt")
-    output_path = os.path.join(base_dir, "text_normalized.txt")
-    debug_path = os.path.join(base_dir, "normalize_debug.txt")
+
+
+def run(session: str, project_root: Path, workdir: Path | None, keep_workdir: bool, readonly: bool) -> int:
+    session_dir = project_root / "sessions" / session
+    input_src = session_dir / "input_raw.txt"
+    output_dest = session_dir / "text_normalized.txt"
+    debug_dest = session_dir / "normalize_debug.txt"
+
+    temp_root = Path(workdir).resolve() if workdir else make_temp_root()
+    log_path = temp_root / "logs" / "L03_normalize.log"
+    log_path.write_text(f"Temp workdir: {temp_root}\n", encoding="utf-8")
+    print(f"Temp workdir: {temp_root}")
 
     try:
-        if not os.path.isdir(base_dir):
-            os.makedirs(base_dir, exist_ok=True)
+        tmp_input = temp_root / "input" / "input_raw.txt"
+        shutil.copy2(input_src, tmp_input)
+        if readonly:
+            try:
+                os.chmod(tmp_input, 0o444)
+            except Exception:
+                pass
 
-        if not os.path.isfile(input_path):
-            raise FileNotFoundError(
-                f"Missing input file: {input_path}. "
-                "Provide pvvp/sessions/<car_id>/input_raw.txt"
-            )
-
-        raw = _read_text(input_path)
+        raw = _read_text(str(tmp_input))
         normalized = normalize_level0(raw)
-
-        # Idempotency check (optional safety): normalizing again should be identical.
         if normalize_level0(normalized) != normalized:
-            # This should never happen; raise for visibility.
             raise AssertionError("Normalization is not idempotent. Please report this input.")
 
-        _write_text(output_path, normalized)
+        tmp_out = temp_root / "out" / "text_normalized.txt.partial"
+        _write_text(str(tmp_out), normalized)
+        atomic_publish(tmp_out, output_dest)
+        if not keep_workdir:
+            shutil.rmtree(temp_root, ignore_errors=True)
         return 0
-
     except Exception as e:
-        # Write debug info
+        tb = traceback.format_exc()
+        payload = [
+            "L03.Normalize level-0 ERROR",
+            f"Session: {session}",
+            f"Error: {repr(e)}",
+            "",
+            "Traceback:",
+            tb,
+        ]
+        tmp_debug = temp_root / "out" / "normalize_debug.txt.partial"
+        _write_text(str(tmp_debug), "\n".join(payload))
         try:
-            tb = traceback.format_exc()
-            payload = [
-                "L03.Normalize level-0 ERROR",
-                f"Session: {session_id}",
-                f"Input Path: {input_path}",
-                f"Output Path: {output_path}",
-                "",
-                f"Error: {repr(e)}",
-                "",
-                "Traceback:",
-                tb,
-            ]
-            os.makedirs(base_dir, exist_ok=True)
-            _write_text(debug_path, "\n".join(payload))
+            atomic_publish(tmp_debug, debug_dest)
         except Exception:
-            # As a last resort, print to stderr
-            print("Failed to write normalize_debug.txt", file=sys.stderr)
-            print(traceback.format_exc(), file=sys.stderr)
+            pass
+        print(f"Workdir preserved at: {temp_root}", file=sys.stderr)
         return 1
 
 from typing import Sequence
 
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="L03.Normalize — level-0 (NFKC, exotic spaces->space, strip BOM/zero-width/control "
-                    "(keep \\n/\\t), collapse spaces/tabs per line, trim per line)"
+        description=(
+            "L03.Normalize — level-0 (NFKC, exotic spaces->space, strip BOM/zero-width/control "
+            "(keep \n/\t), collapse spaces/tabs per line, trim per line)"
+        )
     )
     parser.add_argument("--session", required=True, help="Car/session id (folder under pvvp/sessions)")
-    parser.add_argument("--project-root", default=".", help="Project root directory")
+    parser.add_argument("--project-root", required=True, help="Project root directory")
+    parser.add_argument("--workdir", help="Use existing workdir instead of creating temp")
+    parser.add_argument("--keep-workdir", action="store_true", help="Preserve temp workdir for debugging")
+    parser.add_argument("--readonly", action="store_true", help="Disallow writes outside temp until publish")
     args = parser.parse_args(argv)
 
-    # Change working directory to project root
-    project_root = os.path.abspath(args.project_root)
-    os.chdir(project_root)
+    project_root = Path(args.project_root).resolve()
+    workdir = Path(args.workdir).resolve() if args.workdir else None
+    return run(args.session, project_root, workdir, args.keep_workdir, args.readonly)
 
-    return run(args.session)
 
 if __name__ == "__main__":
     sys.exit(main())
