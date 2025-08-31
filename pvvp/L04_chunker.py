@@ -25,6 +25,7 @@ import argparse
 import json
 import os
 import sys
+import traceback
 from pathlib import Path
 import shutil
 from pvvp.temp_utils import make_temp_root, atomic_publish
@@ -116,7 +117,17 @@ def chunk_text(text: str, min_len: int, target_len: int, max_len: int):
 
 
 
-def run(session: str, project_root: Path, min_len: int, target_len: int, max_len: int, workdir: Path | None, keep_workdir: bool, readonly: bool) -> int:
+def run(
+    session: str,
+    project_root: Path,
+    min_len: int,
+    target_len: int,
+    max_len: int,
+    workdir: Path | None,
+    keep_workdir: bool,
+    readonly: bool,
+    diag: bool = False,
+) -> int:
     session_dir = project_root / "sessions" / session
     input_src = session_dir / "text_normalized.txt"
     output_dest = session_dir / "chunks.jsonl"
@@ -127,7 +138,18 @@ def run(session: str, project_root: Path, min_len: int, target_len: int, max_len
     log_path.write_text(f"Temp workdir: {temp_root}\n", encoding="utf-8")
     print(f"Temp workdir: {temp_root}")
 
+    if diag:
+        print(f"cwd={Path.cwd()}")
+        print(f"__file__={__file__}")
+        print(f"sys.executable={sys.executable}")
+        print(f"sys.path[0:5]={sys.path[:5]}")
+        print(f"project_root={project_root.resolve()}")
+        print(f"session_dir={session_dir.resolve()}")
+
     try:
+        if not input_src.exists():
+            raise FileNotFoundError(f"Missing normalized text at {input_src}. Run L03 first.")
+
         tmp_input = temp_root / "input" / "text_normalized.txt"
         shutil.copy2(input_src, tmp_input)
         if readonly:
@@ -139,7 +161,9 @@ def run(session: str, project_root: Path, min_len: int, target_len: int, max_len
         if min_len <= 0 or max_len <= 0 or target_len <= 0:
             raise ValueError("Invalid lengths: --min, --target, --max must be >0")
         if not (min_len <= target_len <= max_len):
-            raise ValueError(f"Invalid relation among lengths: require --min <= --target <= --max (got min={min_len}, target={target_len}, max={max_len}).")
+            raise ValueError(
+                f"Invalid relation among lengths: require --min <= --target <= --max (got min={min_len}, target={target_len}, max={max_len})."
+            )
 
         with open(tmp_input, "r", encoding="utf-8") as f:
             text = f.read()
@@ -160,14 +184,18 @@ def run(session: str, project_root: Path, min_len: int, target_len: int, max_len
             shutil.rmtree(temp_root, ignore_errors=True)
         return 0
     except Exception as e:
+        tb = traceback.format_exc()
+        err_log = temp_root / "logs" / "L04_chunker.err.log"
+        err_log.write_text(tb, encoding="utf-8")
         tmp_debug = temp_root / "out" / "chunker_debug.txt.partial"
         write_debug(str(tmp_debug), f"{e}")
         try:
             atomic_publish(tmp_debug, debug_dest)
         except Exception:
             pass
+        print(tb, file=sys.stderr)
         print(f"Workdir preserved at: {temp_root}", file=sys.stderr)
-        return 2
+        return 1
 
 
 def main() -> None:
@@ -180,11 +208,22 @@ def main() -> None:
     parser.add_argument("--workdir", help="Use existing workdir instead of creating temp")
     parser.add_argument("--keep-workdir", action="store_true", help="Preserve temp workdir for debugging")
     parser.add_argument("--readonly", action="store_true", help="Disallow writes outside temp until publish")
+    parser.add_argument("--diag", action="store_true", help="Print diagnostic info")
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
     workdir = Path(args.workdir).resolve() if args.workdir else None
-    rc = run(args.session, project_root, args.min_len, args.target, args.max_len, workdir, args.keep_workdir, args.readonly)
+    rc = run(
+        args.session,
+        project_root,
+        args.min_len,
+        args.target,
+        args.max_len,
+        workdir,
+        args.keep_workdir,
+        args.readonly,
+        args.diag,
+    )
     sys.exit(rc)
 
 

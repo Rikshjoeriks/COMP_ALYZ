@@ -144,7 +144,14 @@ def _write_text(path: str, content: str) -> None:
 
 
 
-def run(session: str, project_root: Path, workdir: Path | None, keep_workdir: bool, readonly: bool) -> int:
+def run(
+    session: str,
+    project_root: Path,
+    workdir: Path | None,
+    keep_workdir: bool,
+    readonly: bool,
+    diag: bool = False,
+) -> int:
     session_dir = project_root / "sessions" / session
     input_src = session_dir / "input_raw.txt"
     output_dest = session_dir / "text_normalized.txt"
@@ -155,7 +162,18 @@ def run(session: str, project_root: Path, workdir: Path | None, keep_workdir: bo
     log_path.write_text(f"Temp workdir: {temp_root}\n", encoding="utf-8")
     print(f"Temp workdir: {temp_root}")
 
+    if diag:
+        print(f"cwd={Path.cwd()}")
+        print(f"__file__={__file__}")
+        print(f"sys.executable={sys.executable}")
+        print(f"sys.path[0:5]={sys.path[:5]}")
+        print(f"project_root={project_root.resolve()}")
+        print(f"session_dir={session_dir.resolve()}")
+
     try:
+        if not input_src.exists():
+            raise FileNotFoundError(f"Missing raw input at {input_src}")
+
         tmp_input = temp_root / "input" / "input_raw.txt"
         shutil.copy2(input_src, tmp_input)
         if readonly:
@@ -177,6 +195,8 @@ def run(session: str, project_root: Path, workdir: Path | None, keep_workdir: bo
         return 0
     except Exception as e:
         tb = traceback.format_exc()
+        err_log = temp_root / "logs" / "L03_normalize.err.log"
+        err_log.write_text(tb, encoding="utf-8")
         payload = [
             "L03.Normalize level-0 ERROR",
             f"Session: {session}",
@@ -191,6 +211,7 @@ def run(session: str, project_root: Path, workdir: Path | None, keep_workdir: bo
             atomic_publish(tmp_debug, debug_dest)
         except Exception:
             pass
+        print(tb, file=sys.stderr)
         print(f"Workdir preserved at: {temp_root}", file=sys.stderr)
         return 1
 
@@ -209,11 +230,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--workdir", help="Use existing workdir instead of creating temp")
     parser.add_argument("--keep-workdir", action="store_true", help="Preserve temp workdir for debugging")
     parser.add_argument("--readonly", action="store_true", help="Disallow writes outside temp until publish")
+    parser.add_argument("--diag", action="store_true", help="Print diagnostic info")
     args = parser.parse_args(argv)
 
     project_root = Path(args.project_root).resolve()
     workdir = Path(args.workdir).resolve() if args.workdir else None
-    return run(args.session, project_root, workdir, args.keep_workdir, args.readonly)
+    return run(args.session, project_root, workdir, args.keep_workdir, args.readonly, args.diag)
 
 
 if __name__ == "__main__":
