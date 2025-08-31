@@ -2,83 +2,38 @@
   "approved": [
     {
       "chunk_id": 1,
-      "status": "Yes",
-      "name": "Avārijas zvans",
-      "evidence": "Ārkārtas un avārijas izsaukums (eCall)",
-      "approved": true,
-      "review_note": ""
+      "name": "Apsildāms vadītāja sēdeklis",
+      "evidence": "Apsildāmi priekšējie sēdekļi"
     },
     {
       "chunk_id": 1,
-      "status": "Yes",
-      "name": "Vadītāja sēdekļa jostasvietas regulēšana elektriski",
-      "evidence": "Autovadītāja sēdeklis ar regulējamu augstumu",
-      "approved": false,
-      "review_note": ""
+      "name": "Apsildāms pasažiera sēdeklis",
+      "evidence": "Apsildāmi priekšējie sēdekļi"
     },
     {
       "chunk_id": 2,
-      "status": "Yes",
-      "name": "Android Auto un Apple CarPlay - bezvadu",
-      "evidence": "Bezvadu Apple CarPlay®",
-      "approved": true,
-      "review_note": ""
+      "name": "Gaisa kondicionētājs",
+      "evidence": "Automātiskā gaisa kondicionēšanas sistēma"
     },
     {
       "chunk_id": 2,
-      "status": "Yes",
-      "name": "Android Auto un Apple CarPlay - bezvadu",
-      "evidence": "Bezvadu Android AutoTM",
-      "approved": true,
-      "review_note": ""
+      "name": "Durvju spoguļi - elektriski/sildāmi/nolokāmi",
+      "evidence": "Apsildāmi un automātiski pielokāmi sānu spoguļi"
     },
     {
       "chunk_id": 2,
-      "status": "Yes",
-      "name": "Kruīza kontrole",
-      "evidence": "Kruīza kontrole ar ātruma ierobežotāju",
-      "approved": true,
-      "review_note": ""
+      "name": "Priekšējie lukturi – LED",
+      "evidence": "LED priekšējie lukturi"
     },
     {
       "chunk_id": 2,
-      "status": "Yes",
-      "name": "Stāvbremze – elektriska",
-      "evidence": "Elektroniska rokas bremze ar automātiskās stāvbremzes funkciju",
-      "approved": true,
-      "review_note": ""
+      "name": "Priekšējie lukturi – adaptīvie LED bez Matrix vai Glare Free",
+      "evidence": "Inteliģentie automātiskie priekšējie luktņi"
     },
     {
       "chunk_id": 2,
-      "status": "Yes",
-      "name": "Priekšējie vējstikla tīrītāji - automātiski",
-      "evidence": "Automātiski stikla tīrītāji un lietus sensors",
-      "approved": true,
-      "review_note": ""
-    },
-    {
-      "chunk_id": 2,
-      "status": "Yes",
-      "name": "Dienas gaitas lukturi - LED",
-      "evidence": "LED dienas apgaismojuma lukturi",
-      "approved": true,
-      "review_note": ""
-    },
-    {
-      "chunk_id": 2,
-      "status": "Yes",
-      "name": "Apsildāms vadītāja sēdeklis",
-      "evidence": "Apsildāmi un automātiski pielokāmi sānu spoguļi",
-      "approved": true,
-      "review_note": ""
-    },
-    {
-      "chunk_id": 2,
-      "status": "Yes",
-      "name": "16\" tērauda rati",
-      "evidence": "17\" tērauda diski, Sakura",
-      "approved": false,
-      "review_note": ""
+      "name": "17\" tērauda riteņi",
+      "evidence": "17\" tērauda diski, Sakura"
     }
   ]
 }
