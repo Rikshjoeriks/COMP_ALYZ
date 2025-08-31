@@ -99,7 +99,12 @@ def load_master(path: Path) -> Tuple[List[dict], Dict[str, str]]:
         name_col = _find(NAME_COLS)
         tt_col = _find(TT_COLS)
         en_col = _find(EN_COLS)
-        header_info = {"nr": nr_col, "name": name_col, "tt": tt_col, "en": en_col}
+        header_info = {
+            "nr": nr_col or "",
+            "name": name_col or "",
+            "tt": tt_col or "",
+            "en": en_col or "",
+        }
 
         for row in reader:
             nr = (row.get(nr_col or "") or "").strip()
