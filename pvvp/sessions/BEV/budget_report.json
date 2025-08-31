@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2025-08-26T13:13:40+00:00",
+  "generated_at_utc": "2025-08-31T20:08:35+00:00",
   "session": "BEV",
   "config_effective": {
     "model": "gpt-4o-mini",
@@ -9,7 +9,7 @@
     "fixed_overhead_tokens": 300,
     "assumed_output_tokens": 200,
     "max_calls_per_car": 8,
-    "euro_cap_per_car": 1.0,
+    "euro_cap_per_car": 2.0,
     "calls_already_made": 0
   },
   "per_chunk": [
@@ -38,11 +38,11 @@
       "est_input_tokens": 1502,
       "est_output_tokens": 200,
       "est_cost_eur": 0.3453,
-      "allowed": false
+      "allowed": true
     }
   ],
-  "sum_est_cost_eur": 0.714,
-  "allowed_calls_count": 2,
-  "status": "CAPPED",
-  "note": "Capped by configured limits."
+  "sum_est_cost_eur": 1.0593,
+  "allowed_calls_count": 3,
+  "status": "OK",
+  "note": "Under caps."
 }

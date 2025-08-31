@@ -1,1 +1,14 @@
-{"mentioned_vars": ["Vadītāja sēdekļa elektriska regulēšana"], "evidence": {"Vadītāja sēdekļa elektriska regulēšana": "Elektriski regulējams vadītāja sēdeklis ar atmiņas funkciju"}}
+{
+  "mentioned_vars": [
+    "Durvju spoguļi - elektriski/sildāmi/salokāmi ar atmiņu",
+    "Vadītāja sēdekļa elektriska regulēšana",
+    "Apsildāms vadītāja sēdeklis",
+    "Panorāmas jumts"
+  ],
+  "evidence": {
+    "Durvju spoguļi - elektriski/sildāmi/salokāmi ar atmiņu": "ārējie spoguļi ar atmiņas funkciju, automātiski aptumšojami (vadītāja pusē)",
+    "Vadītāja sēdekļa elektriska regulēšana": "elektriski regulējams vadītāja sēdeklis ar atmiņu un masāžas funkciju",
+    "Apsildāms vadītāja sēdeklis": "elektriski regulējams vadītāja sēdeklis ar atmiņu un masāžas funkciju",
+    "Panorāmas jumts": "Panorāmas stikla jumts ar tonētu stiklu (tikai Coupe)"
+  }
+}

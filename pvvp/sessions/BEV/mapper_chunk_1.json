@@ -1,17 +1,21 @@
 {
   "chunk_id": 1,
   "mentioned_vars": [
-    "Durvju spoguļi - elektriski/sildāmi/salokāmi",
+    "Priekšējie lukturi – LED",
+    "Priekšējie lukturi – adaptīvie LED ar Matrix vai Glare Free",
     "Kruīza kontrole – adaptīvā",
     "Stāvvietas palīgs – priekšējie sensori",
     "Stāvvietas palīgs – aizmugurējie sensori",
-    "Apsildāms stūres rats"
+    "Apsildāms stūres rats",
+    "Durvju spoguļi - elektriski/sildāmi/salokāmi"
   ],
   "evidence": {
-    "Durvju spoguļi - elektriski/sildāmi/salokāmi": "Elektriski regulējami, nolokāmi, apsildāmi sānu atpakaļskata spoguļi",
+    "Priekšējie lukturi – LED": "LED priekšējie un aizmugurējie lukturi",
+    "Priekšējie lukturi – adaptīvie LED ar Matrix vai Glare Free": "LED matricu priekšējie lukturi, LED aizmugurējie lukturi ar dinamiskajiem virzienrādītājiem",
     "Kruīza kontrole – adaptīvā": "Adaptīvā kruīza kontrole",
-    "Stāvvietas palīgs – priekšējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē",
-    "Stāvvietas palīgs – aizmugurējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē",
-    "Apsildāms stūres rats": "3-spieķu multifunkcionāla ādas sporta stūre ar apsildi"
+    "Stāvvietas palīgs – priekšējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē + atpakaļskata kamera",
+    "Stāvvietas palīgs – aizmugurējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē + atpakaļskata kamera",
+    "Apsildāms stūres rats": "3-spieķu multifunkcionāla ādas sporta stūre ar apsildi",
+    "Durvju spoguļi - elektriski/sildāmi/salokāmi": "Elektriski regulējami, nolokāmi, apsildāmi sānu atpakaļskata spoguļi"
   }
 }

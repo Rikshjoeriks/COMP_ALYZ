@@ -133,3 +133,48 @@ EXPORT: detections_EV.csv (rows 114, positives 0)
 2025-08-31T19:39:53Z | LEGO summary_finalize rc=0
 [L13] (stub) Summary finalize skipped.
 RUN: OK (chunks processed 3/3; positives 0; capped=false)
+2025-08-31T19:55:16Z | RUN START session=EV
+2025-08-31T19:55:16Z | INPUT saved bytes=5437
+2025-08-31T19:55:16Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-31T19:55:16Z | ALLOW-LIST derived count=101
+2025-08-31T19:55:16Z | LEGO normalize rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_2fwnkuew
+2025-08-31T19:55:16Z | LEGO chunker rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_cixm9pt_
+BUDGET: OK (est €1.06 / cap €2.00)
+2025-08-31T19:55:16Z | LEGO budget rc=0
+2025-08-31T19:55:16Z | BUDGET allowed_chunks=[1, 2, 3]
+2025-08-31T19:55:17Z | LEGO mapper rc=1
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_jel1y7lg Traceback (most recent call last): File "C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\L06_mapper.py", line 506, in run raw = http_chat_completion( api_key=api_key, ...<6 lines>... timeout_seconds=int(preset.get("timeout_seconds", 45)), ) File "C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\L06_mapper.py", line 305, in http_chat_completion raise RuntimeError(f"OpenAI API error {resp.status_code}: {resp.text}") RuntimeError: OpenAI API error 401: { "error": { "message": "Incorrect API key provided: sk-.... You can find your API key at https://platform.openai.com/account/api-keys.", "type": "invalid_request_error", "param": null, "code": "invalid_api_key" } } Workdir preserved at: C:\Users\vanag\AppData\Local\pvvp_jel1y7lg
+2025-08-31T19:55:17Z | FAIL mapper
+2025-08-31T19:55:18Z | LEGO merge rc=0
+2025-08-31T19:55:18Z | LEGO validate rc=0
+EXPORT: detections_EV.csv (rows 114, positives 0)
+2025-08-31T19:55:18Z | LEGO export_csv rc=0
+2025-08-31T19:55:18Z | LEGO export_positives rc=0
+[L09] (stub) Export positives skipped.
+2025-08-31T19:55:18Z | LEGO summary_finalize rc=0
+[L13] (stub) Summary finalize skipped.
+RUN: OK (chunks processed 3/3; positives 0; capped=false)
+2025-08-31T20:05:01Z | RUN START session=EV
+2025-08-31T20:05:01Z | INPUT saved bytes=5437
+2025-08-31T20:05:01Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-31T20:05:01Z | ALLOW-LIST derived count=101
+2025-08-31T20:05:01Z | LEGO normalize rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_6wuozrna
+2025-08-31T20:05:01Z | LEGO chunker rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_brcty6yu
+BUDGET: OK (est €1.06 / cap €2.00)
+2025-08-31T20:05:01Z | LEGO budget rc=0
+2025-08-31T20:05:01Z | BUDGET allowed_chunks=[1, 2, 3]
+2025-08-31T20:05:26Z | LEGO mapper rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_kvwj9d9x
+2025-08-31T20:05:26Z | LEGO merge rc=0
+2025-08-31T20:05:26Z | LEGO validate rc=0
+EXPORT: detections_EV.csv (rows 114, positives 0)
+2025-08-31T20:05:26Z | LEGO export_csv rc=0
+2025-08-31T20:05:26Z | LEGO export_positives rc=0
+[L09] (stub) Export positives skipped.
+2025-08-31T20:05:27Z | LEGO summary_finalize rc=0
+[L13] (stub) Summary finalize skipped.
+RUN: OK (chunks processed 3/3; positives 0; capped=false)

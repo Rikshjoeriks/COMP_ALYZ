@@ -1,9 +1,9 @@
 {
   "chunk_id": 2,
   "mentioned_vars": [
-    "Vadītāja sēdekļa elektriska regulēšana"
+    "Elektriski regulējams vadītāja sēdeklis ar atmiņu"
   ],
   "evidence": {
-    "Vadītāja sēdekļa elektriska regulēšana": "Elektriski regulējams vadītāja sēdeklis ar atmiņas funkciju"
+    "Elektriski regulējams vadītāja sēdeklis ar atmiņu": "V. Elektriski regulējams vadītāja sēdeklis ar atmiņas funkciju"
   }
 }

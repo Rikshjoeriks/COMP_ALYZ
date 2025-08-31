@@ -4,3 +4,26 @@ BUDGET: OK (est €0.29 / cap €1.00)
 BUDGET: OK (est €0.29 / cap €1.00)
 BUDGET: CAPPED after 2 call(s) (est €0.71)
 BUDGET: CAPPED after 2 call(s) (est €0.71)
+2025-08-31T20:08:35Z | RUN START session=BEV
+2025-08-31T20:08:35Z | INPUT saved bytes=5434
+2025-08-31T20:08:35Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\BEV\pvvp_master.csv
+2025-08-31T20:08:35Z | ALLOW-LIST derived count=95
+2025-08-31T20:08:35Z | LEGO normalize rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_3b3fl5f8
+2025-08-31T20:08:35Z | LEGO chunker rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_8x_9_z97
+BUDGET: OK (est €1.06 / cap €2.00)
+2025-08-31T20:08:35Z | LEGO budget rc=0
+2025-08-31T20:08:35Z | BUDGET allowed_chunks=[1, 2, 3]
+2025-08-31T20:08:55Z | LEGO mapper rc=0
+Temp workdir: C:\Users\vanag\AppData\Local\pvvp_vyjxbakz
+2025-08-31T20:08:55Z | LEGO merge rc=0
+2025-08-31T20:08:55Z | LEGO validate rc=0
+EXPORT: detections_BEV.csv (rows 109, positives 0)
+2025-08-31T20:08:55Z | LEGO export_csv rc=0
+2025-08-31T20:08:55Z | LEGO export_positives rc=0
+[L09] (stub) Export positives skipped.
+2025-08-31T20:08:55Z | LEGO summary_finalize rc=0
+[L13] (stub) Summary finalize skipped.
+2025-08-31T20:08:55Z | CS_UNMATCHED count=93
+RUN: OK (chunks processed 3/3; positives 0; capped=false)

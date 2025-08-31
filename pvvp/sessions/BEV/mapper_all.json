@@ -2,27 +2,46 @@
   {
     "chunk_id": 1,
     "mentioned_vars": [
-      "Durvju spoguļi - elektriski/sildāmi/salokāmi",
+      "Priekšējie lukturi – LED",
+      "Priekšējie lukturi – adaptīvie LED ar Matrix vai Glare Free",
       "Kruīza kontrole – adaptīvā",
       "Stāvvietas palīgs – priekšējie sensori",
       "Stāvvietas palīgs – aizmugurējie sensori",
-      "Apsildāms stūres rats"
+      "Apsildāms stūres rats",
+      "Durvju spoguļi - elektriski/sildāmi/salokāmi"
     ],
     "evidence": {
-      "Durvju spoguļi - elektriski/sildāmi/salokāmi": "Elektriski regulējami, nolokāmi, apsildāmi sānu atpakaļskata spoguļi",
+      "Priekšējie lukturi – LED": "LED priekšējie un aizmugurējie lukturi",
+      "Priekšējie lukturi – adaptīvie LED ar Matrix vai Glare Free": "LED matricu priekšējie lukturi, LED aizmugurējie lukturi ar dinamiskajiem virzienrādītājiem",
       "Kruīza kontrole – adaptīvā": "Adaptīvā kruīza kontrole",
-      "Stāvvietas palīgs – priekšējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē",
-      "Stāvvietas palīgs – aizmugurējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē",
-      "Apsildāms stūres rats": "3-spieķu multifunkcionāla ādas sporta stūre ar apsildi"
+      "Stāvvietas palīgs – priekšējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē + atpakaļskata kamera",
+      "Stāvvietas palīgs – aizmugurējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē + atpakaļskata kamera",
+      "Apsildāms stūres rats": "3-spieķu multifunkcionāla ādas sporta stūre ar apsildi",
+      "Durvju spoguļi - elektriski/sildāmi/salokāmi": "Elektriski regulējami, nolokāmi, apsildāmi sānu atpakaļskata spoguļi"
     }
   },
   {
     "chunk_id": 2,
     "mentioned_vars": [
-      "Vadītāja sēdekļa elektriska regulēšana"
+      "Elektriski regulējams vadītāja sēdeklis ar atmiņu"
     ],
     "evidence": {
-      "Vadītāja sēdekļa elektriska regulēšana": "Elektriski regulējams vadītāja sēdeklis ar atmiņas funkciju"
+      "Elektriski regulējams vadītāja sēdeklis ar atmiņu": "V. Elektriski regulējams vadītāja sēdeklis ar atmiņas funkciju"
+    }
+  },
+  {
+    "chunk_id": 3,
+    "mentioned_vars": [
+      "Durvju spoguļi - elektriski/sildāmi/salokāmi ar atmiņu",
+      "Vadītāja sēdekļa elektriska regulēšana",
+      "Apsildāms vadītāja sēdeklis",
+      "Panorāmas jumts"
+    ],
+    "evidence": {
+      "Durvju spoguļi - elektriski/sildāmi/salokāmi ar atmiņu": "ārējie spoguļi ar atmiņas funkciju, automātiski aptumšojami (vadītāja pusē)",
+      "Vadītāja sēdekļa elektriska regulēšana": "elektriski regulējams vadītāja sēdeklis ar atmiņu un masāžas funkciju",
+      "Apsildāms vadītāja sēdeklis": "elektriski regulējams vadītāja sēdeklis ar atmiņu un masāžas funkciju",
+      "Panorāmas jumts": "Panorāmas stikla jumts ar tonētu stiklu (tikai Coupe)"
     }
   }
 ]
