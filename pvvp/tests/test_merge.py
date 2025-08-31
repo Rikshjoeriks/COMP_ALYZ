@@ -30,28 +30,29 @@ def make_session(tmp_path: Path) -> tuple[Path, list[str]]:
         "Apsildāms stūres rats",
         "Durvju spoguļi - elektriski/sildāmi/salokāmi",
     ]
-    allow_nrs = []
+    allow_nrs: list[str] = []
     with (session_dir / "pvvp_master.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Nr Code", "Variable Name", "Variable Name LV", "Section TT"])
+        writer.writerow(["nr_code", "variable name", "is_tt"])
         for i, name in enumerate(allow_names, start=1):
             nr = f"NR{i}"
             allow_nrs.append(nr)
-            writer.writerow([nr, "", name, ""])
+            writer.writerow([nr, name, ""])
     with (session_dir / f"LV_{session}PVVP.txt").open("w", encoding="utf-8") as f:
         for nr in allow_nrs:
             f.write(nr + "\n")
-    evidence = {
-        "Priekšējie lukturi – LED": "LED priekšējie un aizmugurējie lukturi",
-        "Priekšējie lukturi – adaptīvie LED ar Matrix vai Glare Free": "Adaptīvie LED priekšējie lukturi ar Matrix un Glare Free",
-        "Kruīza kontrole – adaptīvā": "Adaptīvā kruīza kontrole",
-        "Stāvvietas palīgs – priekšējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē + atpakaļskata kamera",
-        "Stāvvietas palīgs – aizmugurējie sensori": "Stāvvietā novietošanas sensori priekšā un aizmugurē + atpakaļskata kamera",
-        "Apsildāms stūres rats": "3-spieķu sporta stūre ar apsildi",
-        "Durvju spoguļi - elektriski/sildāmi/salokāmi": "Elektriski regulējami, nolokāmi, apsildāmi sānu spoguļi",
+    evidence_map = {
+        "NR1": "LED priekšējie un aizmugurējie lukturi",
+        "NR2": "Adaptīvie LED priekšējie lukturi ar Matrix un Glare Free",
+        "NR3": "Adaptīvā kruīza kontrole",
+        "NR4": "Stāvvietā novietošanas sensori priekšā un aizmugurē + atpakaļskata kamera",
+        "NR5": "Stāvvietā novietošanas sensori priekšā un aizmugurē + atpakaļskata kamera",
+        "NR6": "3-spieķu sporta stūre ar apsildi",
+        "NR7": "Elektriski regulējami, nolokāmi, apsildāmi sānu spoguļi",
     }
+    results = [{"nr": nr, "verdict": "Jā", "match": ev} for nr, ev in evidence_map.items()]
     with (session_dir / "mapper_chunk_1.json").open("w", encoding="utf-8") as f:
-        json.dump({"chunk_id": 1, "mentioned_vars": list(evidence.keys()), "evidence": evidence}, f, ensure_ascii=False)
+        json.dump({"chunk_id": 1, "results": results}, f, ensure_ascii=False)
     return session_dir, allow_nrs
 
 
