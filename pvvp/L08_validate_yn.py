@@ -5,9 +5,12 @@ import argparse
 import csv
 import json
 import os
+import re
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 from typing import Dict, List, Tuple, Optional
+
+from pvvp.textnorm import norm_basic
 
 MASTER_CSV = "pvvp_master.csv"
 ALLOW_LIST = "LV_{args.session}PVVP.txt"
@@ -91,13 +94,27 @@ def main():
 
     # Load inputs
     try:
-        allow_list = load_allow_list(allow_list_path)
-        allow_set = set(allow_list)
+        allow_raw = load_allow_list(allow_list_path)
         mentioned_vars, evidence_map, reason_map = load_merge_result(merge_result_path)
         mentioned_set = set(mentioned_vars)
         master_rows = load_master_csv(master_csv_path)
     except Exception as e:
         die(session_dir, f"Failed to load inputs: {e}", exc=e)
+
+    name_to_nr = {
+        norm_basic(r["Variable Name"]).lower(): r["Nr Code"]
+        for r in master_rows
+        if r["Variable Name"]
+    }
+    allow_nr_list: List[str] = []
+    for item in allow_raw:
+        if re.match(r"^NR\d+$", item, re.I):
+            allow_nr_list.append(item.upper())
+        else:
+            nr = name_to_nr.get(norm_basic(item).lower())
+            if nr:
+                allow_nr_list.append(nr)
+    allow_nr_set = set(allow_nr_list)
 
     # Diagnostics containers
     rows_total = len(master_rows)
@@ -108,15 +125,16 @@ def main():
     notes: List[str] = []
 
     # Unknowns in merge (not present in allow-list)
-    unknown_in_merge = sorted([name for name in mentioned_set if name not in allow_set])
+    unknown_in_merge = sorted([nr for nr in mentioned_set if nr not in allow_nr_set])
     unknown_in_merge_dropped = len(unknown_in_merge)
 
     if unknown_in_merge_dropped > 0:
-        notes.append(f"merge_result contains {unknown_in_merge_dropped} names not in allow-list; dropped from decisions.")
-        # Also list them for human visibility
-        notes.append("Unknown (not in allow-list): " + "; ".join(unknown_in_merge[:50]) + (" ..." if len(unknown_in_merge) > 50 else ""))
+        notes.append(f"merge_result contains {unknown_in_merge_dropped} NR codes not in allow-list; dropped from decisions.")
+        notes.append(
+            "Unknown (not in allow-list): " + "; ".join(unknown_in_merge[:50]) + (" ..." if len(unknown_in_merge) > 50 else "")
+        )
 
-    # Drift detection: non-TT master names that are not in allow-list
+    # Drift detection: non-TT master NR codes that are not in allow-list
     drift_missing = []
 
     # Detect duplicate non-TT names inside master
@@ -125,7 +143,7 @@ def main():
     duplicate_variable_names = sorted([n for n, c in name_counts.items() if c > 1])
 
     # Build master_aligned.jsonl in master order
-    # Also collect final decisions for non-TT rows whose names are in allow-list
+    # Also collect final decisions for non-TT rows whose NR codes are in allow-list
     final_decisions: Dict[str, str] = {}
     aligned_lines: List[str] = []
 
@@ -141,29 +159,28 @@ def main():
             ev = ""
         else:
             feature_rows += 1
-            # Drift check
-            if var_name not in allow_set:
+            if nr_code not in allow_nr_set:
                 drift_missing.append(var_name)
 
-            if var_name in mentioned_set:
-                reason = reason_map.get(var_name, "")
+            if nr_code in mentioned_set:
+                reason = reason_map.get(nr_code, "")
                 maybe_flag = "Y" if reason.startswith("fuzzy") else "N"
-                mentioned_YN = "Y"
-                positives_after_merge += 1
-                ev = evidence_map.get(var_name, "") or ""
+                mentioned_YN = "Y" if reason.split("_")[0] in ("exact", "normalized") else "N"
+                if mentioned_YN == "Y":
+                    positives_after_merge += 1
+                ev = evidence_map.get(nr_code, "") or ""
             else:
                 mentioned_YN = "N"
                 maybe_flag = "N"
                 ev = ""
 
-            # final_decisions: only non-TT names that are in the allow-list; keys must be exact allow-list strings
-            if var_name in allow_set:
+            if nr_code in allow_nr_set:
                 if mentioned_YN == "Y" and maybe_flag == "Y":
-                    final_decisions[var_name] = "M"
+                    final_decisions[nr_code] = "M"
                 elif mentioned_YN == "Y":
-                    final_decisions[var_name] = "Y"
+                    final_decisions[nr_code] = "Y"
                 else:
-                    final_decisions[var_name] = "N"
+                    final_decisions[nr_code] = "N"
 
         aligned_obj = {
             "nr_code": nr_code,
@@ -191,7 +208,7 @@ def main():
 
         # final_decisions.json (keys limited to names that appear in BOTH master (non-TT) and allow-list)
         # Ensure keys are emitted in the allow-list order for human diff stability (even though JSON objects are unordered)
-        ordered_final = {name: final_decisions.get(name, "N") for name in allow_list if name in final_decisions}
+        ordered_final = {nr: final_decisions.get(nr, "N") for nr in allow_nr_list if nr in final_decisions}
         with open(final_decisions_path, "w", encoding="utf-8") as f:
             json.dump(ordered_final, f, ensure_ascii=False, indent=2)
 
