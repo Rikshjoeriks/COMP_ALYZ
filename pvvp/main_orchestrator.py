@@ -263,13 +263,12 @@ class Orchestrator:
         append_line(self.summary_path, f"{now_utc_ts()} | BUDGET allowed_chunks={allowed_ids}")
         return report
 
-    def run_mapper_for_chunk(self, chunk_id: int) -> bool:
-        ok, log = self.run_lego("mapper", "--session", self.session_id, "--chunk-id", str(chunk_id))
+    def run_mapper(self) -> bool:
+        ok, _ = self.run_lego("mapper", "--session", self.session_id)
+        print("OK mapper" if ok else "FAIL mapper")
         if not ok:
-            err_path = self.sessions_dir / f"mapper_chunk_{chunk_id}_error.txt"
-            write_text(err_path, log or "mapper error")
-        # success is not required to continue
-        return ok
+            append_line(self.summary_path, f"{now_utc_ts()} | FAIL mapper")
+        return self.paths["mapper_all"].exists()
 
     def run_merge(self) -> bool:
         ok, _ = self.run_lego("merge", "--session", self.session_id)
@@ -425,18 +424,12 @@ def main() -> int:
 
     # 6) Budget
     budget_report = orch.run_budget()
-    per_chunk = budget_report.get("per_chunk", [])
-    allowed_ids = [int(c.get("chunk_id")) for c in per_chunk if c.get("allowed")]
     capped = bool(budget_report.get("capped", False))
 
     # If no chunks allowed, continue (all N path)
 
-    # 7) Mapper for allowed chunks (resilient per-chunk)
-    any_mapper_error = False
-    for cid in allowed_ids:
-        ok = orch.run_mapper_for_chunk(cid)
-        if not ok:
-            any_mapper_error = True
+    # 7) Mapper
+    mapper_ok = orch.run_mapper()
 
     # 8) Merge (always attempt)
     merge_ok = orch.run_merge()
@@ -450,7 +443,7 @@ def main() -> int:
     # 11) Optional cs_unmatched
     orch.run_cs_unmatched()
 
-    partial = any_mapper_error or (not merge_ok) or (not validate_ok) or (not export_ok)
+    partial = (not mapper_ok) or (not merge_ok) or (not validate_ok) or (not export_ok)
 
     # Final RUN line
     final_line = orch.final_run_line(capped=capped, partial=partial)
