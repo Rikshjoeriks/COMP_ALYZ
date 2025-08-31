@@ -42,3 +42,19 @@ RUN: PARTIAL (chunks processed 0/0; positives 0; capped=false)
 2025-08-31T11:00:55Z | FAIL chunker
 2025-08-31T11:00:55Z | BUDGET allowed_chunks=[]
 RUN: PARTIAL (chunks processed 0/0; positives 0; capped=false)
+2025-08-31T18:48:49Z | RUN START session=EV
+2025-08-31T18:48:49Z | INPUT saved bytes=5437
+2025-08-31T18:48:49Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-31T18:48:49Z | ALLOW-LIST derived count=101
+2025-08-31T18:48:49Z | FAIL normalize
+2025-08-31T18:48:49Z | FAIL chunker
+2025-08-31T18:48:49Z | BUDGET allowed_chunks=[]
+RUN: PARTIAL (chunks processed 0/3; positives 0; capped=false)
+2025-08-31T19:02:57Z | RUN START session=EV
+2025-08-31T19:02:57Z | INPUT saved bytes=5437
+2025-08-31T19:02:57Z | MASTER already in place at C:\Users\vanag\Documents\INCHCAPE\pvvp_app\pvvp\sessions\EV\pvvp_master.csv
+2025-08-31T19:02:57Z | ALLOW-LIST derived count=101
+2025-08-31T19:02:57Z | FAIL normalize
+2025-08-31T19:02:57Z | FAIL chunker
+2025-08-31T19:02:57Z | BUDGET allowed_chunks=[]
+RUN: PARTIAL (chunks processed 0/3; positives 0; capped=false)

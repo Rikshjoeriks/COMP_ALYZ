@@ -27,7 +27,7 @@ import os
 import sys
 from pathlib import Path
 import shutil
-from temp_utils import make_temp_root, atomic_publish
+from pvvp.temp_utils import make_temp_root, atomic_publish
 
 def write_debug(debug_path: str, message: str) -> None:
     try:

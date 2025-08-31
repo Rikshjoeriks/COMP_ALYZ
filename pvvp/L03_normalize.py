@@ -26,7 +26,7 @@ import re
 from typing import Iterable
 from pathlib import Path
 import shutil
-from temp_utils import make_temp_root, atomic_publish
+from pvvp.temp_utils import make_temp_root, atomic_publish
 
 # --- regex precompilations ---
 # collapse runs of spaces/tabs (NOT newlines)
