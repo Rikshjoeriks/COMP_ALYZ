@@ -15,7 +15,7 @@ Inputs  (under <project_root>/sessions/<car_id>/):
   - prompts/strict_mapper_user_lv.md   (created if missing)
 
 Outputs (under session folder):
-  - mapper_chunk_<id>.json      : {"chunk_id", "mentioned_vars", "evidence"}
+  - mapper_chunk_<id>.json      : {"chunk_id", "results": [{"nr","verdict","match"}, ...]}
   - mapper_all.json             : [ per-chunk objects ... ]
   - mapper_response.json        : raw last model response text (for debug)
   - mapper_chunk_<id>_error.txt : short reason on per-chunk error
@@ -359,43 +359,31 @@ def http_chat_completion(
 
     raise RuntimeError("OpenAI request failed after retries.")
 
-def normalize_output_against_allowlist(
-    raw_obj: Any,
-    allow_ordered: List[str],
-    evidence_max_chars: int,
-) -> Dict[str, Any]:
+def normalize_results_against_allowlist(
+    raw_obj: Any, allow_ordered: List[str], evidence_max_chars: int
+) -> List[Dict[str, str]]:
     allow_set = set(allow_ordered)
     if not isinstance(raw_obj, dict):
         raise ValueError("Model output is not a JSON object.")
-
-    mv = raw_obj.get("mentioned_vars", [])
-    ev = raw_obj.get("evidence", {})
-
-    # Coerce/validate shapes
-    if not isinstance(mv, list):
-        mv = []
-    mv = [str(x).strip() for x in mv if isinstance(x, (str, int, float))]
-    # Preserve original model order but filter by allow-list (exact, trimmed)
-    filtered_mv: List[str] = []
+    arr = raw_obj.get("results")
+    if not isinstance(arr, list):
+        return []
+    out: List[Dict[str, str]] = []
     seen: Set[str] = set()
-    for name in mv:
-        if name in allow_set and name not in seen:
-            filtered_mv.append(name)
-            seen.add(name)
-
-    # Evidence: keep only for kept vars, coerce str and trim
-    if not isinstance(ev, dict):
-        ev = {}
-    filtered_ev: Dict[str, str] = {}
-    for k, v in ev.items():
-        k_s = str(k).strip()
-        if k_s in seen:
-            val = "" if v is None else str(v)
-            if evidence_max_chars >= 0:
-                val = val[:evidence_max_chars]
-            filtered_ev[k_s] = val
-
-    return {"mentioned_vars": filtered_mv, "evidence": filtered_ev}
+    for item in arr:
+        if not isinstance(item, dict):
+            continue
+        nr = str(item.get("nr", "")).strip()
+        if nr not in allow_set or nr in seen:
+            continue
+        verdict = str(item.get("verdict", "")).strip()
+        match = item.get("match", "")
+        match = "" if match is None else str(match)
+        if evidence_max_chars >= 0:
+            match = match[:evidence_max_chars]
+        out.append({"nr": nr, "verdict": verdict, "match": match})
+        seen.add(nr)
+    return out
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="L06 Mapper", allow_abbrev=False, add_help=True)
@@ -629,13 +617,12 @@ def run(
                         pass
                 continue
 
-            normalized = normalize_output_against_allowlist(
+            normalized = normalize_results_against_allowlist(
                 parsed, allow_list, int(preset.get("evidence_max_chars", 120))
             )
             result_obj = {
                 "chunk_id": cid,
-                "mentioned_vars": normalized["mentioned_vars"],
-                "evidence": normalized["evidence"],
+                "results": normalized,
             }
             write_json(str(out_chunk_tmp), result_obj)
             atomic_publish(out_chunk_tmp, session_dir / f"mapper_chunk_{cid}.json")
