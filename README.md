@@ -20,3 +20,25 @@ Modules must be run with `-m` so package imports resolve correctly. `L06_mapper`
 The orchestrator runs each step via module mode, surfaces stderr, and skips optional modules (such as `L09_export_positives` and `L13_summary_finalize`) if they are not present.
 
 Develop on a local feature branch and push it to a remote branch before merging. Opening a pull request from your feature branch ensures the remote history remains clean and reviewable.
+
+## OpenAI API key
+
+Windows PowerShell (current session only):
+
+```powershell
+$env:OPENAI_API_KEY = "sk-REDACTED"
+```
+
+Persist for your user:
+
+```powershell
+[System.Environment]::SetEnvironmentVariable('OPENAI_API_KEY','sk-REDACTED','User')
+```
+
+`.env` alternative (repo root):
+
+```
+OPENAI_API_KEY=sk-REDACTED
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
+```
