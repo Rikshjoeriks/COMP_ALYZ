@@ -36,7 +36,7 @@ Assumed lego entrypoints (CLI or modules) under <project_root>/program:
   L09_export_positives.py --session <id>
   L13_summary_finalize.py --session <id>
 
-If your filenames differ, adjust LEGO_PATHS below.
+If your module names differ, adjust LEGO_MODULES below.
 """
 from __future__ import annotations
 import argparse
@@ -51,17 +51,19 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import subprocess
 
-# ---------- Configuration of lego script paths (relative to project root) ----------
-LEGO_PATHS = {
-    "normalize": "program/L03_normalize.py",
-    "chunker": "program/L04_chunker.py",
-    "budget": "program/L12_budget_guard.py",
-    "mapper": "program/L06_mapper.py",
-    "merge": "program/L07_merge.py",
-    "validate": "program/L08_validate_align.py",
-    "export_csv": "program/L10_export_csv.py",
-    "export_positives": "program/L09_export_positives.py",
-    "summary_finalize": "program/L13_summary_finalize.py",
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# ---------- Configuration of lego module names ----------
+LEGO_MODULES = {
+    "normalize": "pvvp.L03_normalize",
+    "chunker": "pvvp.L04_chunker",
+    "budget": "pvvp.L12_budget",
+    "mapper": "pvvp.L06_mapper",
+    "merge": "pvvp.L07_merge",
+    "validate": "pvvp.L08_validate_yn",
+    "export_csv": "pvvp.L10_export_csv",
+    "export_positives": "pvvp.L09_export_positives",
+    "summary_finalize": "pvvp.L13_summary_finalize",
 }
 
 # ---------- Helpers ----------
@@ -88,12 +90,11 @@ def append_line(p: Path, s: str) -> None:
         f.write(s.rstrip("\n") + "\n")
 
 
-def run_py(script_path: Path, *args: str, cwd: Optional[Path] = None) -> Tuple[int, str, str]:
-    """Run a python script with the current interpreter, capture output.
-    Returns (returncode, stdout, stderr).
-    """
-    cmd = [sys.executable, str(script_path), *args]
-    proc = subprocess.run(cmd, cwd=str(cwd or script_path.parent), capture_output=True, text=True)
+def run_module(module: str, *args: str, cwd: Optional[Path] = None) -> Tuple[int, str, str]:
+    """Run a python module with the current interpreter, capture output.
+    Returns (returncode, stdout, stderr)."""
+    cmd = [sys.executable, "-m", module, *args]
+    proc = subprocess.run(cmd, cwd=str(cwd or REPO_ROOT), capture_output=True, text=True)
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -209,13 +210,14 @@ class Orchestrator:
 
     # ----- Lego runners -----
     def run_lego(self, key: str, *args: str) -> Tuple[bool, str]:
-        script_rel = LEGO_PATHS[key]
-        script_path = (self.project_root / script_rel).resolve()
-        if not script_path.exists():
-            return False, f"lego script missing: {script_path}"
-        rc, out, err = run_py(script_path, *args, "--project-root", str(self.project_root))
+        module = LEGO_MODULES[key]
+        rc, out, err = run_module(module, *args, "--project-root", str(self.project_root))
+        if out:
+            print(out, end="")
+        if err:
+            print(err, end="", file=sys.stderr)
         ok = rc == 0
-        log = out.strip() + ("\n" + err.strip() if err.strip() else "")
+        log = (out + err).strip()
         append_line(self.summary_path, f"{now_utc_ts()} | LEGO {key} rc={rc}")
         if log:
             append_line(self.summary_path, textwrap.shorten(log, width=800, placeholder=" …"))
@@ -223,6 +225,7 @@ class Orchestrator:
 
     def run_normalize(self) -> bool:
         ok, _ = self.run_lego("normalize", "--session", self.session_id)
+        print("OK normalize" if ok else "FAIL normalize")
         if not ok:
             append_line(self.summary_path, f"{now_utc_ts()} | FAIL normalize")
         # require normalized file
@@ -230,6 +233,7 @@ class Orchestrator:
 
     def run_chunker(self) -> bool:
         ok, _ = self.run_lego("chunker", "--session", self.session_id)
+        print("OK chunker" if ok else "FAIL chunker")
         if not ok:
             append_line(self.summary_path, f"{now_utc_ts()} | FAIL chunker")
         return self.paths["chunks"].exists()

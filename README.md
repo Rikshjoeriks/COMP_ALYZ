@@ -10,6 +10,8 @@ Each lego runs inside a temporary directory that mirrors `input/`, `work/`, `out
 
 Example:
 ```sh
-python pvvp/L03_normalize.py --session EV --project-root /path/to/pvvp --readonly --keep-workdir
-python pvvp/L04_chunker.py --session EV --project-root /path/to/pvvp --readonly --keep-workdir
+python -m pvvp.L03_normalize --session EV --project-root /path/to/pvvp --readonly --keep-workdir
+python -m pvvp.L04_chunker --session EV --project-root /path/to/pvvp --readonly --keep-workdir
 ```
+
+Develop on a local feature branch and push it to a remote branch before merging. Opening a pull request from your feature branch ensures the remote history remains clean and reviewable.
