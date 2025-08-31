@@ -31,7 +31,7 @@ Out of scope (L07+):
   - cross-chunk merges; evidence substring verification; Y/N expansion; numbering; CSV exports.
 """
 
-import argparse, sys, traceback
+import argparse, sys, traceback, shlex
 import json
 import os
 import re
@@ -347,8 +347,11 @@ def normalize_output_against_allowlist(
 
     return {"mentioned_vars": filtered_mv, "evidence": filtered_ev}
 
-def build_parser():
-    p = argparse.ArgumentParser(description="L06 Mapper", allow_abbrev=False)
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description="L06 Mapper", allow_abbrev=False, add_help=True)
+    # L06-specific args (KEEP existing)
+
+    # Common/global flags (even if unused here)
     p.add_argument("--project-root", default=None)
     p.add_argument("--session", "--session-id", dest="session", default=None)
     p.add_argument("--workdir", default=None)
@@ -356,6 +359,69 @@ def build_parser():
     p.add_argument("--readonly", action="store_true")
     p.add_argument("--diag", action="store_true")
     return p
+
+
+def _known_option_strings(parser: argparse.ArgumentParser) -> dict:
+    """
+    Returns a map: option_string -> action (e.g., "--session" -> Action)
+    Includes all long and short flags declared on the parser.
+    """
+    known = {}
+    for a in parser._actions:
+        for opt in getattr(a, "option_strings", []):
+            known[opt] = a
+    return known
+
+
+def _filter_argv_for_known(parser: argparse.ArgumentParser, argv: list[str]) -> list[str]:
+    """
+    Keep only flags known to this parser plus their values.
+    Supports '--key value' and '--key=value' forms.
+    For store_true/store_false/toggle, no value is consumed.
+    This sidesteps argparse edge cases on 3.13.
+    """
+    known = _known_option_strings(parser)
+    out = []
+    i = 0
+    while i < len(argv):
+        tok = argv[i]
+        if tok.startswith("--") and "=" in tok:
+            flag, val = tok.split("=", 1)
+            if flag in known:
+                out.extend([flag, val])
+            i += 1
+            continue
+        if tok in known:
+            action = known[tok]
+            out.append(tok)
+            expects_value = getattr(action, "nargs", None) not in (0, None, "?") and not isinstance(action, argparse._StoreTrueAction) and not isinstance(action, argparse._StoreFalseAction)
+            if isinstance(action, argparse._StoreAction) and action.nargs in (None, 1):
+                expects_value = True
+            if expects_value and i + 1 < len(argv):
+                nxt = argv[i + 1]
+                if not nxt.startswith("-"):
+                    out.append(nxt)
+                    i += 1
+            i += 1
+            continue
+        else:
+            i += 1
+    return out
+
+
+def parse_args_safe(parser: argparse.ArgumentParser, argv: list[str]):
+    """
+    Primary: try parse_known_args (works on most Pythons).
+    Fallback: on UnboundLocalError or SystemExit, filter argv to known flags and parse_args.
+    """
+    try:
+        return parser.parse_known_args(argv)
+    except UnboundLocalError:
+        pass
+    except SystemExit:
+        pass
+    filtered = _filter_argv_for_known(parser, argv)
+    return parser.parse_args(filtered), []
 
 
 def run(
@@ -372,6 +438,9 @@ def run(
     mapper_all_dest = session_dir / "mapper_all.json"
 
     temp_root = workdir.resolve() if workdir else make_temp_root()
+    log_path = temp_root / "logs" / "L06_mapper.log"
+    log_path.write_text(f"Temp workdir: {temp_root}\n", encoding="utf-8")
+    print(f"Temp workdir: {temp_root}")
     if diag:
         print(f"cwd={Path.cwd()}")
         print(f"sys.executable={sys.executable}")
@@ -534,9 +603,11 @@ def run(
 def main() -> int:
     global tmp
     parser = build_parser()
-    args, unknown = parser.parse_known_args()
-    if unknown:
-        print(f"[L06] Ignoring unknown args: {unknown}")
+    argv = sys.argv[1:]
+    args, unknown = parse_args_safe(parser, argv)
+    if getattr(args, "diag", False):
+        print(f"[L06] argv={argv}")
+        print(f"[L06] unknown(after-safe)={unknown}")
     if not args.project_root or not args.session:
         parser.error("--project-root and --session are required")
     project_root = Path(args.project_root).resolve()
