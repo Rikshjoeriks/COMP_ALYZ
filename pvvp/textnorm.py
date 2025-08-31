@@ -6,7 +6,8 @@ DASHES = {
     "\u2212": "-",
 }
 
-SPACES = {
+# Alias map for non-breaking spaces
+SP = {
     "\u00A0": " ",
     "\u2007": " ",
     "\u202F": " ",
@@ -18,7 +19,7 @@ def norm_basic(s: str) -> str:
         return ""
     s = unicodedata.normalize("NFKC", s)
     s = s.translate(str.maketrans(DASHES))
-    s = s.translate(str.maketrans(SPACES))
+    s = s.translate(str.maketrans(SP))
     s = re.sub(r"[ \t]+", " ", s)
     return s.strip()
 
@@ -28,7 +29,7 @@ def norm_lv(s: str) -> str:
         return ""
     s = unicodedata.normalize("NFKC", s)
     s = s.translate(str.maketrans(DASHES))
-    s = s.translate(str.maketrans(SPACES))
+    s = s.translate(str.maketrans(SP))
     # collapse spaces/tabs (keep newlines if needed)
     s = re.sub(r"[ \t]+", " ", s)
     # join digits + unit letters like "12 V" -> "12V", "10 Kw" -> "10Kw"

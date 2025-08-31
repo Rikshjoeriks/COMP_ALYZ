@@ -9,17 +9,18 @@ import re
 import sys
 import traceback
 from pathlib import Path
-from typing import Dict, List, Tuple, Set, Any
+from typing import Any, Dict, List, Tuple
 
 from pvvp.temp_utils import make_temp_root, atomic_publish
-from pvvp.textnorm import norm_basic, norm_lv
+from pvvp.textnorm import norm_lv
+
+
+NR_RE = re.compile(r"^NR\d+$", re.I)
 
 
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
-
-NR_RE = re.compile(r"^NR\d+$", re.I)
 
 
 def load_json(path: Path) -> Any:
@@ -38,18 +39,8 @@ def load_jsonl(path: Path) -> List[dict]:
     return rows
 
 
-def read_allow_list(path: Path) -> List[str]:
-    names: List[str] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                names.append(line)
-    return names
-
-
-def parse_allowed_chunk_ids(budget: object) -> Set[int]:
-    allowed: Set[int] = set()
+def parse_allowed_chunk_ids(budget: object) -> set[int]:
+    allowed: set[int] = set()
     if isinstance(budget, dict) and "chunks" in budget and isinstance(budget["chunks"], list):
         for item in budget["chunks"]:
             try:
@@ -74,114 +65,51 @@ def parse_allowed_chunk_ids(budget: object) -> Set[int]:
     return allowed
 
 
-def load_master_map(path: Path) -> Tuple[Dict[str, str], Dict[str, str]]:
-    """Return mappings: normalized name -> NR, NR -> original name."""
-    name_to_nr: Dict[str, str] = {}
-    nr_to_name: Dict[str, str] = {}
-    with path.open("r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            nr = (row.get("Nr Code") or "").strip()
-            name = (row.get("Variable Name") or "").strip()
-            if not nr:
-                continue
-            if name:
-                key = norm_basic(name).lower()
-                if key not in name_to_nr:
-                    name_to_nr[key] = nr
-                nr_to_name[nr] = name
-    return name_to_nr, nr_to_name
+def load_master(path: Path) -> Tuple[List[dict], Dict[str, str]]:
+    """Load master CSV with tolerant headers.
 
+    Returns (rows, header_info) where rows are raw master rows and header_info
+    records which column names were used for nr/name/tt/en.
+    """
 
-def load_alias_map(path: Path) -> Dict[str, str]:
-    try:
-        data = load_json(path)
-    except Exception:
-        return {}
-    out: Dict[str, str] = {}
-    if isinstance(data, dict):
-        for k, v in data.items():
-            if isinstance(k, str) and isinstance(v, str):
-                out[norm_basic(k).lower()] = v.strip()
-    return out
+    NR_COLS = ["nr_code", "nr code", "nr"]
+    NAME_COLS = [
+        "variable_name_lv",
+        "variable name lv",
+        "variable name",
+        "variable name lv",
+        "variable name",
+    ]
+    TT_COLS = ["is_tt", "section tt", "tt"]
+    EN_COLS = ["variable_name_en", "variable name en", "variable name en"]
 
-
-LV_HINTS_RAW = {
-    "gaisa kondicionētājs": ["kondicionieris", "klimata kontrole", "a/c"],
-    "apsildāms stūres rats": ["stūres apsilde", "stūre ar apsildi"],
-    "bezatslēgas piekļuve": ["keyless", "kessy"],
-    "avārijas zvans": ["ecall", "ārkārtas zvans"],
-    "12v bagāžas nodalījumā": ["12v rozete bagāžas nodalījumā", "12v ligzda bagāžā"],
-    "durvju spoguļi": ["sānu spoguļi", "sānu atpakaļskata spoguļi"],
-    "stāv bremze": ["stāvbremze", "elektroniskā stāvbremze", "autohold"],
-    "navigācijas centrs": ["navigācijas sistēma", "navigācija"],
-}
-
-LV_HINTS = {norm_lv(k): [norm_lv(v) for v in vs] for k, vs in LV_HINTS_RAW.items()}
-
-
-def build_lv_master_index(path: Path) -> tuple[list[dict], dict[str, list[str]]]:
-    master: list[dict] = []
+    rows: List[dict] = []
+    header_info: Dict[str, str] = {}
     with path.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
+        fields = {c.lower(): c for c in reader.fieldnames or []}
+
+        def _find(aliases: List[str]) -> str | None:
+            for a in aliases:
+                if a in fields:
+                    return fields[a]
+            return None
+
+        nr_col = _find(NR_COLS)
+        name_col = _find(NAME_COLS)
+        tt_col = _find(TT_COLS)
+        en_col = _find(EN_COLS)
+        header_info = {"nr": nr_col, "name": name_col, "tt": tt_col, "en": en_col}
+
         for row in reader:
-            nr = row.get("Nr Code") or row.get("nr_code") or row.get("NR Code")
-            name_lv = row.get("Variable Name LV") or row.get("variable_name_lv")
-            is_tt = (row.get("Section TT") or row.get("is_tt") or "").strip().upper() in (
-                "Y",
-                "YES",
-                "TRUE",
-                "1",
-            )
-            if not nr or is_tt:
-                continue
-            master.append({"nr": nr.strip(), "name_lv": name_lv or ""})
+            nr = (row.get(nr_col or "") or "").strip()
+            name_lv = (row.get(name_col or "") or "").strip()
+            name_en = (row.get(en_col or "") or "").strip() if en_col else ""
+            val_tt = (row.get(tt_col or "") or "").strip().upper() if tt_col else ""
+            is_tt = val_tt in {"Y", "YES", "TRUE", "1"}
+            rows.append({"nr": nr, "lv": name_lv, "en": name_en, "is_tt": is_tt})
 
-    by_norm: dict[str, list[str]] = {}
-    for r in master:
-        key = norm_lv(r["name_lv"])
-        by_norm.setdefault(key, []).append(r["nr"])
-    return master, by_norm
-
-
-def map_lv_mention(mention: str, master: list[dict], by_norm: dict[str, list[str]]) -> tuple[str | None, str | None]:
-    m = norm_lv(mention)
-    if not m:
-        return None, None
-    m_aug = m
-    for k, hints in LV_HINTS.items():
-        if k in m:
-            m_aug = " ".join([m_aug] + hints)
-    candidates: list[tuple[str, str]] = []
-    if m in by_norm:
-        for nr in by_norm[m]:
-            candidates.append((nr, "eq"))
-    if not candidates:
-        for r in master:
-            rn = norm_lv(r["name_lv"])
-            if rn and (rn in m_aug or m_aug in rn):
-                candidates.append((r["nr"], "contains"))
-    if not candidates:
-        try:
-            from rapidfuzz.fuzz import token_set_ratio, partial_ratio  # type: ignore
-
-            best: tuple[str, str, float] | None = None
-            for r in master:
-                rn = norm_lv(r["name_lv"])
-                score = max(token_set_ratio(m_aug, rn), partial_ratio(m_aug, rn))
-                if score >= 82:
-                    tag = "fuzzy_strong" if score >= 90 else "fuzzy_weak"
-                    if best is None or score > best[2]:
-                        best = (r["nr"], tag, score)
-            if best:
-                candidates.append((best[0], best[1]))
-        except Exception:
-            pass
-    if candidates:
-        priority = {"eq": 0, "contains": 1, "fuzzy_strong": 2, "fuzzy_weak": 3}
-        candidates.sort(key=lambda x: priority.get(x[1], 99))
-        return candidates[0][0], candidates[0][1]
-    return None, None
+    return rows, header_info
 
 
 def evidence_passes(ev: str, txt: str) -> Tuple[bool, str]:
@@ -189,7 +117,7 @@ def evidence_passes(ev: str, txt: str) -> Tuple[bool, str]:
         return False, "empty"
     if ev in txt:
         return True, "exact"
-    nev, ntx = norm_basic(ev), norm_basic(txt)
+    nev, ntx = norm_lv(ev), norm_lv(txt)
     if nev and nev in ntx:
         return True, "normalized"
     try:
@@ -203,37 +131,16 @@ def evidence_passes(ev: str, txt: str) -> Tuple[bool, str]:
     return False, "miss"
 
 
-def sanity_checks(best: Dict[str, Dict[str, Any]], nr_to_name: Dict[str, str]) -> List[Dict[str, str]]:
-    warnings: List[Dict[str, str]] = []
-    for nr, hit in best.items():
-        name = nr_to_name.get(nr, "").lower()
-        ev_norm = norm_basic(hit.get("evidence", "")).lower()
-        if not ev_norm:
-            continue
-        if "pārnesum" in name or "automatic transmission" in name:
-            if not any(k in ev_norm for k in ["automātisk", "at", "pārnesumkār"]):
-                warnings.append({"nr": nr, "evidence": hit.get("evidence", "")})
-        if "stūres" in name and "apsild" in name:
-            if not ("stūr" in ev_norm and "apsild" in ev_norm):
-                warnings.append({"nr": nr, "evidence": hit.get("evidence", "")})
-        if "spoguļ" in name:
-            if "spoguļ" not in ev_norm:
-                warnings.append({"nr": nr, "evidence": hit.get("evidence", "")})
-        if "digit" in name or "klaster" in name or "ekrān" in name:
-            if not ("ekrān" in ev_norm and any(ch.isdigit() for ch in ev_norm)):
-                warnings.append({"nr": nr, "evidence": hit.get("evidence", "")})
-    return warnings
-
-
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
 
 def main(argv: List[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Merge mapper chunks with robust evidence guard")
+    ap = argparse.ArgumentParser(description="Merge mapper chunks with evidence guard")
     ap.add_argument("--session", required=True)
     ap.add_argument("--project-root", required=True)
+    ap.add_argument("--master-csv")
     ap.add_argument("--diag-merge", action="store_true")
     args = ap.parse_args(argv)
 
@@ -241,74 +148,52 @@ def main(argv: List[str] | None = None) -> int:
     project_root = Path(args.project_root).resolve()
     session_dir = project_root / "sessions" / session_id
 
+    master_path = Path(args.master_csv) if args.master_csv else session_dir / "pvvp_master.csv"
+
     tmp_root = make_temp_root("merge_")
     try:
         chunks_path = session_dir / "chunks.jsonl"
         budget_path = session_dir / "budget_report.json"
-        allow_list_path = session_dir / f"LV_{session_id}PVVP.txt"
-        master_csv_path = session_dir / "pvvp_master.csv"
-        alias_path = session_dir / "alias_map.json"
 
-        for p in (chunks_path, budget_path, allow_list_path, master_csv_path):
+        for p in (chunks_path, budget_path, master_path):
             if not p.is_file():
                 raise FileNotFoundError(f"Missing required input: {p}")
 
         chunk_rows = load_jsonl(chunks_path)
         budget_data = load_json(budget_path)
-        allow_raw = read_allow_list(allow_list_path)
-        name_to_nr, nr_to_name = load_master_map(master_csv_path)
-        alias_map = load_alias_map(alias_path)
-        alias_map.update(name_to_nr)
-        master_lv, by_norm = build_lv_master_index(master_csv_path)
-        if args.diag_merge:
-            print(f"[diag] master rows: {len(master_lv)}")
+        master_rows, header_info = load_master(master_path)
+        master_index = [r for r in master_rows if r.get("nr") and not r.get("is_tt")]
 
-        allow_nr_list: List[str] = []
-        for item in allow_raw:
-            if NR_RE.match(item):
-                allow_nr_list.append(item.upper())
-            else:
-                nr = alias_map.get(norm_basic(item).lower())
-                if nr:
-                    allow_nr_list.append(nr)
-        allow_nr_set = set(allow_nr_list)
+        if not master_index:
+            out_res = tmp_root / "out" / "merge_result.json"
+            out_rep = tmp_root / "out" / "merge_report.json"
+            out_dbg = tmp_root / "out" / "merge_debug.json"
+            out_res.parent.mkdir(parents=True, exist_ok=True)
+            json.dump({}, out_res.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
+            json.dump({"errors": ["empty_master_index"], "header_info": header_info}, out_rep.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
+            json.dump({"header_info": header_info}, out_dbg.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
+            atomic_publish(out_res, session_dir / "merge_result.json")
+            atomic_publish(out_rep, session_dir / "merge_report.json")
+            atomic_publish(out_dbg, session_dir / "merge_debug.json")
+            if args.diag_merge:
+                print(f"[diag] master headers: {header_info}")
+            return 1
 
-        chunk_text_by_id: Dict[int, str] = {}
-        for r in chunk_rows:
-            if "id" in r and "text" in r:
-                try:
-                    cid = int(r["id"])
-                    chunk_text_by_id[cid] = r["text"]
-                except Exception:
-                    continue
-
+        valid_nrs = {r["nr"] for r in master_index}
+        chunk_text_by_id = {int(r["id"]): r.get("text", "") for r in chunk_rows if "id" in r}
         allowed_ids = parse_allowed_chunk_ids(budget_data)
 
         mapper_files = sorted(session_dir.glob("mapper_chunk_*.json"))
-        if args.diag_merge:
-            print(f"[diag] mapper files found: {len(mapper_files)}")
-            if not mapper_files:
-                print(f"[diag] cwd: {Path.cwd()}")
-                print(f"[diag] files in session_dir: {[p.name for p in session_dir.iterdir()]}")
-            print(f"[diag] allowed_chunks: {sorted(allowed_ids)}")
 
         processed_chunk_ids: List[int] = []
         total_mentions = 0
         drops: List[Dict[str, Any]] = []
         unresolved: List[Dict[str, Any]] = []
-        map_counts = {"eq": 0, "contains": 0, "fuzzy_strong": 0, "fuzzy_weak": 0, "unresolved": 0}
-        map_samples: List[Dict[str, str]] = []
-
+        mapping_stats = {"nr_hits": 0, "nr_unresolved": 0}
         hits: List[Dict[str, Any]] = []
-        best_by_nr: Dict[str, Dict[str, Any]] = {}
-        order: List[str] = []
+
         for mf in mapper_files:
-            try:
-                mapper = load_json(mf)
-            except Exception:
-                if args.diag_merge:
-                    print(f"[diag] failed to read {mf.name}")
-                continue
+            mapper = load_json(mf)
             cid = mapper.get("chunk_id")
             try:
                 cid = int(cid)
@@ -318,108 +203,81 @@ def main(argv: List[str] | None = None) -> int:
                 continue
             processed_chunk_ids.append(cid)
             chunk_text = chunk_text_by_id.get(cid, "")
-            mentioned_vars = mapper.get("mentioned_vars") or []
-            ev_map = mapper.get("evidence") or {}
-            for raw_var in mentioned_vars:
+            results = mapper.get("results") or []
+            if not isinstance(results, list):
+                continue
+            for item in results:
+                if not isinstance(item, dict):
+                    continue
+                nr = str(item.get("nr", "")).strip().upper()
+                match = str(item.get("match", ""))
                 total_mentions += 1
-                raw = str(raw_var).strip()
-                nr: str | None = None
-                map_reason: str | None = None
-                if NR_RE.match(raw):
-                    nr = raw.upper()
-                else:
-                    nr = alias_map.get(norm_basic(raw).lower())
-                if not nr:
-                    nr, map_reason = map_lv_mention(raw, master_lv, by_norm)
-                    if nr and map_reason in map_counts:
-                        map_counts[map_reason] += 1
-                        if len(map_samples) < 5:
-                            map_samples.append({"mention": raw, "nr": nr, "reason": map_reason})
-                if not nr:
-                    unresolved.append({"mention": raw})
-                    map_counts["unresolved"] += 1
+                if nr not in valid_nrs:
+                    unresolved.append({"nr": nr})
+                    mapping_stats["nr_unresolved"] += 1
                     continue
-                ev = ev_map.get(raw_var)
-                ev_str = ev if isinstance(ev, str) else ""
-                ok, reason = evidence_passes(ev_str, chunk_text)
+                ok, reason = evidence_passes(match, chunk_text)
                 if not ok:
-                    drops.append({"nr": nr, "reason": reason, "chunk": cid, "ev": ev})
+                    drops.append({"nr": nr, "chunk": cid, "reason": reason, "ev": match})
                     continue
-                # Ensure nr is not None before adding to hits
-                if nr is not None:
-                    hits.append({
-                        "nr": nr,
-                        "var_name_src": raw,
-                        "chunk_id": cid,
-                        "evidence": ev_str,
-                        "reason": reason,
-                    })
+                hits.append({"nr": nr, "chunk_id": cid, "evidence": match, "reason": reason})
+                mapping_stats["nr_hits"] += 1
 
         reason_priority = {"exact": 3, "normalized": 2, "fuzzy": 1}
+        best_by_nr: Dict[str, Dict[str, Any]] = {}
+        order: List[str] = []
         for h in hits:
             nr = h["nr"]
-            if nr is None:
-                continue
-            rkey = h["reason"].split("_")[0]
-            pr = reason_priority.get(rkey, 0)
+            pr = reason_priority.get(h["reason"].split("_")[0], 0)
             existing = best_by_nr.get(nr)
             if not existing:
                 best_by_nr[nr] = h
                 order.append(nr)
                 continue
-            ekey = existing["reason"].split("_")[0]
-            epr = reason_priority.get(ekey, 0)
-            if pr > epr or (pr == epr and len(h.get("evidence", "")) > len(existing.get("evidence", ""))):
+            epr = reason_priority.get(existing["reason"].split("_")[0], 0)
+            if pr > epr or (pr == epr and len(h["evidence"]) > len(existing["evidence"])):
                 best_by_nr[nr] = h
-            if pr > epr or (pr == epr and len(h.get("evidence", "")) > len(existing.get("evidence", ""))):
-                best_by_nr[nr] = h
-
-        warnings = sanity_checks(best_by_nr, nr_to_name)
 
         merge_result = {
             "mentioned_vars": order,
             "evidence": {nr: best_by_nr[nr]["evidence"] for nr in order},
             "evidence_reason": {nr: best_by_nr[nr]["reason"] for nr in order},
         }
+
+        sample_master = [{"raw": r["lv"], "norm": norm_lv(r["lv"])} for r in master_index[:5]]
         merge_report = {
-            "processed_chunk_ids": processed_chunk_ids,
-            "total_mentions_in_chunks": total_mentions,
-            "deduped_vars": len(order),
+            "processed_chunks": len(processed_chunk_ids),
+            "total_mapper_hits": total_mentions,
+            "deduped_nrs": len(order),
+            "header_info": header_info,
+            "mapping_stats": mapping_stats,
             "drops": drops,
             "unresolved": unresolved,
-            "warnings": warnings,
-            "map_samples": map_samples,
-            "mapping_stats": map_counts,
+            "master_samples": sample_master,
         }
+
         merge_debug = {
-            "found_mapper_files": [p.name for p in mapper_files],
-            "accepted_by_nr": {nr: {"reason": hit["reason"], "chunk": hit["chunk_id"]} for nr, hit in best_by_nr.items()},
+            "header_info": header_info,
+            "accepted_by_nr": {nr: {"reason": best_by_nr[nr]["reason"], "chunk": best_by_nr[nr]["chunk_id"]} for nr in order},
             "drops": drops,
-            "unresolved_mentions": unresolved,
+            "unresolved": unresolved,
         }
 
-        out_res_tmp = tmp_root / "out" / "merge_result.json"
-        out_rep_tmp = tmp_root / "out" / "merge_report.json"
-        out_dbg_tmp = tmp_root / "out" / "merge_debug.json"
-        out_res_tmp.parent.mkdir(parents=True, exist_ok=True)
-        with out_res_tmp.open("w", encoding="utf-8") as f:
-            json.dump(merge_result, f, ensure_ascii=False, indent=2)
-        with out_rep_tmp.open("w", encoding="utf-8") as f:
-            json.dump(merge_report, f, ensure_ascii=False, indent=2)
-        with out_dbg_tmp.open("w", encoding="utf-8") as f:
-            json.dump(merge_debug, f, ensure_ascii=False, indent=2)
+        out_res = tmp_root / "out" / "merge_result.json"
+        out_rep = tmp_root / "out" / "merge_report.json"
+        out_dbg = tmp_root / "out" / "merge_debug.json"
+        out_res.parent.mkdir(parents=True, exist_ok=True)
+        json.dump(merge_result, out_res.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
+        json.dump(merge_report, out_rep.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
+        json.dump(merge_debug, out_dbg.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
-        atomic_publish(out_res_tmp, session_dir / "merge_result.json")
-        atomic_publish(out_rep_tmp, session_dir / "merge_report.json")
-        atomic_publish(out_dbg_tmp, session_dir / "merge_debug.json")
+        atomic_publish(out_res, session_dir / "merge_result.json")
+        atomic_publish(out_rep, session_dir / "merge_report.json")
+        atomic_publish(out_dbg, session_dir / "merge_debug.json")
 
         if args.diag_merge:
-            print(f"[diag] mapper mentions: {total_mentions}")
-            print(f"[diag] mapping counts: {map_counts}")
-            print(f"[diag] map samples: {map_samples[:5]}")
-            print(f"[diag] unresolved samples: {unresolved[:5]}")
             print(f"[diag] processed_chunks: {processed_chunk_ids}")
-            print(f"[diag] accepted: {len(order)}; drops: {len(drops)}; unresolved: {len(unresolved)}")
+            print(f"[diag] header_info: {header_info}")
         return 0
     except Exception:
         tb = traceback.format_exc()
