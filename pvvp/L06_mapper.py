@@ -44,7 +44,8 @@ from pvvp.temp_utils import make_temp_root, atomic_publish
 from pvvp.secret_utils import load_api_key, mask_secret
 
 try:
-    from dotenv import load_dotenv; load_dotenv()
+    from dotenv import load_dotenv, find_dotenv
+    load_dotenv(find_dotenv(), override=False)  # loads .env from the repo root
 except Exception:
     pass
 
