@@ -35,11 +35,18 @@ import argparse, sys, traceback, shlex
 import json
 import os
 import re
+import time
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Set
 import shutil
 
 from pvvp.temp_utils import make_temp_root, atomic_publish
+from pvvp.secret_utils import load_api_key, mask_secret
+
+try:
+    from dotenv import load_dotenv; load_dotenv()
+except Exception:
+    pass
 
 tmp: Path | None = None
 
@@ -61,7 +68,7 @@ except ImportError:
 # ----------- Constants & Defaults -----------
 
 DEFAULT_MAPPER_PRESET = {
-    "model": "gpt-4.0-mini",
+    "model": "gpt-4o-mini",
     "temperature": 0,
     "top_p": 1,
     "max_tokens": 600,
@@ -271,8 +278,31 @@ def derive_allowed_set(budget_obj: Any) -> Set[int]:
 
     raise ValueError("Could not derive allowed chunk set from budget_report.json")
 
+def healthcheck(api_base: str, api_key: str, model: str, timeout: int, source: str) -> None:
+    """Minimal request to validate API key."""
+    if requests is None:
+        raise RuntimeError("The 'requests' package is required. Install it via: pip install requests")
+    url = api_base.rstrip("/") + "/chat/completions"
+    payload = {"model": model, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=timeout)
+    except requests.RequestException as e:
+        raise RuntimeError(f"OpenAI network error during healthcheck: {e}")
+    if resp.status_code == 401:
+        masked = mask_secret(api_key)
+        raise RuntimeError(
+            f"OpenAI auth failed (401). Key source={source}; key(masked)={masked}. "
+            f"Ensure OPENAI_API_KEY is correct and has access to model '{model}'. Base={api_base}"
+        )
+    if resp.status_code >= 400:
+        raise RuntimeError(f"OpenAI error {resp.status_code}: {resp.text}")
+
+
 def http_chat_completion(
     api_key: str,
+    key_source: str,
+    api_base: str,
     model: str,
     system_prompt: str,
     user_prompt: str,
@@ -284,7 +314,7 @@ def http_chat_completion(
     if requests is None:
         raise RuntimeError("The 'requests' package is required. Install it via: pip install requests")
 
-    url = "https://api.openai.com/v1/chat/completions"
+    url = api_base.rstrip("/") + "/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -298,16 +328,35 @@ def http_chat_completion(
         "temperature": temperature,
         "top_p": top_p,
         "max_tokens": max_tokens,
-        # Avoid extra knobs for portability. JSON-only behavior is enforced via prompts.
     }
-    resp = requests.post(url, headers=headers, json=payload, timeout=timeout_seconds)
-    if resp.status_code != 200:
-        raise RuntimeError(f"OpenAI API error {resp.status_code}: {resp.text}")
-    data = resp.json()
-    try:
-        return data["choices"][0]["message"]["content"]
-    except Exception:
-        raise RuntimeError(f"Unexpected API response: {json.dumps(data)[:800]}")
+
+    for attempt in range(3):
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=timeout_seconds)
+        except requests.RequestException as e:
+            if attempt < 2:
+                time.sleep(0.5 * (2 ** attempt))
+                continue
+            raise RuntimeError(f"OpenAI network error: {e}")
+
+        if resp.status_code == 401:
+            masked = mask_secret(api_key)
+            raise RuntimeError(
+                f"OpenAI auth failed (401). Key source={key_source}; key(masked)={masked}. Base={api_base}"
+            )
+        if resp.status_code in (429, 500, 502, 503, 504):
+            if attempt < 2:
+                time.sleep(0.5 * (2 ** attempt))
+                continue
+        if resp.status_code >= 400:
+            raise RuntimeError(f"OpenAI API error {resp.status_code}: {resp.text}")
+        data = resp.json()
+        try:
+            return data["choices"][0]["message"]["content"]
+        except Exception:
+            raise RuntimeError(f"Unexpected API response: {json.dumps(data)[:800]}")
+
+    raise RuntimeError("OpenAI request failed after retries.")
 
 def normalize_output_against_allowlist(
     raw_obj: Any,
@@ -357,6 +406,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--workdir", default=None)
     p.add_argument("--keep-workdir", action="store_true")
     p.add_argument("--readonly", action="store_true")
+    p.add_argument("--api-key", dest="api_key", default=None)
+    p.add_argument("--api-key-file", dest="api_key_file", default=None)
+    p.add_argument(
+        "--api-base",
+        dest="api_base",
+        default=os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+    )
+    p.add_argument(
+        "--model",
+        dest="model",
+        default=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+    )
+    p.add_argument("--timeout", dest="timeout_seconds", type=int, default=45)
     p.add_argument("--diag", action="store_true")
     return p
 
@@ -430,7 +492,12 @@ def run(
     workdir: Path | None,
     keep_workdir: bool,
     readonly: bool,
-    diag: bool = False,
+    diag: bool,
+    api_key: str,
+    key_source: str,
+    api_base: str,
+    model: str,
+    timeout_seconds: int,
 ) -> int:
     session_dir = project_root / "sessions" / session
     debug_dest = session_dir / "mapper_debug.txt"
@@ -449,6 +516,7 @@ def run(
         print(f"session_dir={session_dir.resolve()}")
         print(f"temp_root={temp_root}")
     try:
+        healthcheck(api_base, api_key, model, timeout_seconds, key_source)
         chunks_src = session_dir / "chunks.jsonl"
         if not chunks_src.exists():
             raise FileNotFoundError(f"Missing chunks.jsonl at {chunks_src}. Run L04 first.")
@@ -475,10 +543,9 @@ def run(
             raise ValueError("Allow-list is empty.")
         cfg_dir = project_root / "config"
         preset = load_or_create_preset(str(cfg_dir))
-        sys_prompt, user_template = ensure_prompts(str(project_root), preset.get("evidence_max_chars", 120))
-        api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-        if not api_key:
-            raise EnvironmentError("OPENAI_API_KEY is not set.")
+        sys_prompt, user_template = ensure_prompts(
+            str(project_root), int(preset.get("evidence_max_chars", 120))
+        )
         chunks = load_chunks_jsonl(str(tmp_chunks))
         budget_obj = read_json(str(tmp_budget))
         allowed_set = derive_allowed_set(budget_obj)
@@ -505,13 +572,15 @@ def run(
 
             raw = http_chat_completion(
                 api_key=api_key,
-                model=str(preset.get("model", DEFAULT_MAPPER_PRESET["model"])),
+                key_source=key_source,
+                api_base=api_base,
+                model=model,
                 system_prompt=sys_prompt,
                 user_prompt=user_prompt,
                 temperature=float(preset.get("temperature", 0)),
                 top_p=float(preset.get("top_p", 1)),
                 max_tokens=int(preset.get("max_tokens", 600)),
-                timeout_seconds=int(preset.get("timeout_seconds", 45)),
+                timeout_seconds=timeout_seconds,
             )
 
             tmp_resp = temp_root / "out" / "mapper_response.json.partial"
@@ -528,13 +597,15 @@ def run(
                 repair_user = raw.strip()
                 raw2 = http_chat_completion(
                     api_key=api_key,
-                    model=str(preset.get("model", DEFAULT_MAPPER_PRESET["model"])),
+                    key_source=key_source,
+                    api_base=api_base,
+                    model=model,
                     system_prompt=REPAIR_SYSTEM_PROMPT,
                     user_prompt=repair_user,
                     temperature=0,
                     top_p=1,
                     max_tokens=int(preset.get("max_tokens", 600)),
-                    timeout_seconds=int(preset.get("timeout_seconds", 45)),
+                    timeout_seconds=timeout_seconds,
                 )
                 write_text(str(tmp_resp), raw2)
                 atomic_publish(tmp_resp, response_dest)
@@ -612,7 +683,30 @@ def main() -> int:
         parser.error("--project-root and --session are required")
     project_root = Path(args.project_root).resolve()
     tmp = Path(args.workdir).resolve() if args.workdir else None
-    return run(args.session, project_root, tmp, args.keep_workdir, args.readonly, args.diag)
+    api_key, source = load_api_key(
+        cli_key=args.api_key,
+        key_file=Path(args.api_key_file) if args.api_key_file else None,
+        env_name="OPENAI_API_KEY",
+    )
+    if args.diag:
+        print(f"[L06] Key source: {source}")
+        print(f"[L06] API base: {args.api_base}")
+        print(f"[L06] Model: {args.model}")
+    if not api_key:
+        raise RuntimeError("No API key found. Set OPENAI_API_KEY env var or use --api-key-file.")
+    return run(
+        args.session,
+        project_root,
+        tmp,
+        args.keep_workdir,
+        args.readonly,
+        args.diag,
+        api_key,
+        source,
+        args.api_base,
+        args.model,
+        args.timeout_seconds,
+    )
 
 
 if __name__ == "__main__":
