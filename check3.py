@@ -1,14 +1,10 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv()  # reads .env from cwd
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY is not set. Put it in your .env file.")
-
+from pvvp.common.env_setup import load_env, get_openai_config, mask
 from openai import OpenAI
 
-client = OpenAI(api_key=OPENAI_API_KEY)  # or just OpenAI() if .env is loaded
+load_env()
+cfg = get_openai_config()
+print("OPENAI_API_KEY:", mask(cfg["api_key"]))
+client = OpenAI(api_key=cfg["api_key"])  # or just OpenAI() if .env is loaded
 
 models = client.models.list()
 for m in models.data:
