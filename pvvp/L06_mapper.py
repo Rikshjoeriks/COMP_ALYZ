@@ -237,7 +237,11 @@ def load_master_map(path: str) -> tuple[Dict[str, str], Dict[str, str], int]:
         nr_col = _find(NR_COLS)
         name_col = _find(NAME_COLS)
         tt_col = _find(TT_COLS)
-        header_info = {"nr": nr_col, "name": name_col, "tt": tt_col}
+        header_info = {
+            "nr": nr_col if nr_col is not None else "",
+            "name": name_col if name_col is not None else "",
+            "tt": tt_col if tt_col is not None else "",
+        }
 
         for row in reader:
             nr = (row.get(nr_col or "") or "").strip()
