@@ -33,11 +33,11 @@ def make_session(tmp_path: Path) -> tuple[Path, list[str]]:
     allow_nrs = []
     with (session_dir / "pvvp_master.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Nr Code", "Variable Name", "Section TT"])
+        writer.writerow(["Nr Code", "Variable Name", "Variable Name LV", "Section TT"])
         for i, name in enumerate(allow_names, start=1):
             nr = f"NR{i}"
             allow_nrs.append(nr)
-            writer.writerow([nr, name, ""])
+            writer.writerow([nr, "", name, ""])
     with (session_dir / f"LV_{session}PVVP.txt").open("w", encoding="utf-8") as f:
         for nr in allow_nrs:
             f.write(nr + "\n")
