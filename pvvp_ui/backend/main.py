@@ -42,6 +42,8 @@ def ensure_session_folder(session_id: str) -> Path:
     return PVVP_DIR / "sessions" / session_id
 
 def run_script(args: list[str]) -> dict:
+    if REPO_ROOT is None:
+        return {"exit": -1, "stdout": "", "stderr": "REPO_ROOT not resolved"}
     try:
         proc = subprocess.run(args, capture_output=True, text=True, cwd=REPO_ROOT)
         return {"exit": proc.returncode, "stdout": proc.stdout, "stderr": proc.stderr}
@@ -96,6 +98,10 @@ async def upload_input(sessionId: str = Form(...), file: UploadFile = File(...))
 def run_normalize(body: RunBody):
     if PVVP_DIR is None or not (PVVP_DIR / "L03_normalize.py").exists():
         return JSONResponse({"error": f"L03_normalize.py not found under {PVVP_DIR}"}, status_code=400)
+    session_dir = ensure_session_folder(body.sessionId)
+    input_file = session_dir / "input_raw.txt"
+    if not input_file.exists():
+        return JSONResponse({"error": f"Missing input file at {input_file}"}, status_code=400)
     cmd = [
         python_exec(),
         "-m",
@@ -105,4 +111,10 @@ def run_normalize(body: RunBody):
         "--project-root",
         "pvvp",
     ]
-    return run_script(cmd)
+    result = run_script(cmd)
+    if result.get("exit") != 0:
+        debug_file = session_dir / "normalize_debug.txt"
+        if debug_file.exists():
+            result["debug"] = debug_file.read_text(encoding="utf-8", errors="ignore")
+        return JSONResponse(result, status_code=500)
+    return result
