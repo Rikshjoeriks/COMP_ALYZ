@@ -15,7 +15,11 @@ export default function NormalizePage({ sessionId, onBack }) {
       setStderr(res.data.stderr || "");
       setExitCode(res.data.exit);
     } catch (e) {
-      setStderr(e.response?.data?.error || e.message);
+      const payload = e.response?.data;
+      setStderr(
+        (payload?.error)
+        ?? (payload ? JSON.stringify(payload) : e.message)
+      );
       setExitCode(-1);
     } finally {
       setRunning(false);

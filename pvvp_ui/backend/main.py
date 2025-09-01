@@ -1,9 +1,9 @@
-from fastapi import FastAPI, UploadFile, File, Form
+﻿from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from pathlib import Path
-import subprocess, json
+import subprocess, json, os
 
 from settings import REPO_ROOT, PVVP_DIR, SESSIONS_DIR, FRONTEND_ORIGIN, python_exec
 
@@ -36,8 +36,10 @@ class ChunkBody(BaseModel):
     max: int | None = None
 
 def ensure_session_folder(session_id: str) -> Path:
-    (SESSIONS_DIR / session_id).mkdir(parents=True, exist_ok=True)
-    return SESSIONS_DIR / session_id
+    if PVVP_DIR is None:
+        raise FileNotFoundError("PVVP_DIR is not resolved")
+    (PVVP_DIR / "sessions" / session_id).mkdir(parents=True, exist_ok=True)
+    return PVVP_DIR / "sessions" / session_id
 
 def run_script(args: list[str]) -> dict:
     try:
@@ -50,6 +52,18 @@ def run_script(args: list[str]) -> dict:
 def hello():
     return {"msg": "ok"}
 
+@app.get("/api/debug/paths")
+def debug_paths():
+    return {
+        "cwd": os.getcwd(),
+        "this_file": str(Path(__file__).resolve()),
+        "REPO_ROOT": str(REPO_ROOT) if REPO_ROOT else None,
+        "PVVP_DIR": str(PVVP_DIR) if PVVP_DIR else None,
+        "PVVP_DIR_exists": bool(PVVP_DIR and Path(PVVP_DIR).exists()),
+        "L03_exists": bool(PVVP_DIR and (Path(PVVP_DIR) / "L03_normalize.py").exists()),
+        "SESSIONS_DIR": str(SESSIONS_DIR) if SESSIONS_DIR else None,
+    }
+
 @app.get("/api/sessions")
 def sessions():
     return {"items": SESSIONS}
@@ -58,7 +72,7 @@ def sessions():
 def session_init(body: InitBody):
     if body.sessionId not in SESSIONS:
         return JSONResponse({"error": "Unknown sessionId"}, status_code=400)
-    if not PVVP_DIR.exists():
+    if PVVP_DIR is None or not (PVVP_DIR / "L03_normalize.py").exists():
         return JSONResponse({"error": f"Missing pvvp folder at {PVVP_DIR}"}, status_code=400)
     ensure_session_folder(body.sessionId)
     return {"ok": True}
@@ -80,34 +94,7 @@ async def upload_input(sessionId: str = Form(...), file: UploadFile = File(...))
 
 @app.post("/api/run/normalize")
 def run_normalize(body: RunBody):
-    if not (PVVP_DIR / "L03_normalize.py").exists():
-        return JSONResponse({"error": "L03_normalize.py not found"}, status_code=400)
-    cmd = [
-        python_exec(), "pvvp/L03_normalize.py",
-        "--session", body.sessionId,
-        "--project-root", "pvvp"
-    ]
-    result = run_script(cmd)
-    return result
-
-@app.get("/api/review/candidates")
-def review_candidates(sessionId: str):
-    path = ensure_session_folder(sessionId) / "review_candidates.json"
-    if not path.exists():
-        sample = {
-            "items": [
-                {"variable":"Apsildāms stūres rats","evidence":"3-spieķu multifunkcionāla ādas sporta stūre ar apsildi"},
-                {"variable":"Kruīza kontrole – adaptīvā","evidence":"Adaptīvā kruīza kontrole"}
-            ]
-        }
-        return sample
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        if isinstance(data, list):
-            return {"items": data}
-        if "items" not in data and "review_candidates" in data:
-            return {"items": data["review_candidates"]}
-        return data
-    except Exception as e:
-        return JSONResponse({"error": f"Failed to parse: {e}"}, status_code=500)
-
+    if PVVP_DIR is None or not (PVVP_DIR / "L03_normalize.py").exists():
+        return JSONResponse({"error": f"L03_normalize.py not found under {PVVP_DIR}"}, status_code=400)
+    cmd = [python_exec(), "pvvp/L03_normalize.py", "--session", body.sessionId, "--project-root", "pvvp"]
+    return run_script(cmd)
