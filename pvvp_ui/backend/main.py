@@ -96,5 +96,13 @@ async def upload_input(sessionId: str = Form(...), file: UploadFile = File(...))
 def run_normalize(body: RunBody):
     if PVVP_DIR is None or not (PVVP_DIR / "L03_normalize.py").exists():
         return JSONResponse({"error": f"L03_normalize.py not found under {PVVP_DIR}"}, status_code=400)
-    cmd = [python_exec(), "pvvp/L03_normalize.py", "--session", body.sessionId, "--project-root", "pvvp"]
+    cmd = [
+        python_exec(),
+        "-m",
+        "pvvp.L03_normalize",
+        "--session",
+        body.sessionId,
+        "--project-root",
+        "pvvp",
+    ]
     return run_script(cmd)
